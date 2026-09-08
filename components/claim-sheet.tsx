@@ -15,6 +15,7 @@ import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { useCurrency } from "./currency-provider";
 import { FileAttachButton } from "./file-attach";
+import { spotOwnerLabel } from "@/lib/spot-copy";
 
 type Step = "detail" | "pay" | "success";
 
@@ -362,10 +363,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
         </ul>
 
         {selected.status === "sold" && step !== "success" ? (
-          <p className="mt-6 text-sm text-destructive">{dict.claim.soldNote}</p>
+          <p className="mt-6 text-sm text-[#147a4b]">{spotOwnerLabel(selected, dict)}</p>
         ) : null}
         {selected.status === "reserved" && step === "detail" ? (
-          <p className="mt-6 text-sm text-[#8a6a12]">{dict.claim.heldNote}</p>
+          <p className="mt-6 text-sm text-[#8a6a12]">
+            {spotOwnerLabel(selected, dict)}. {dict.claim.heldNote}
+          </p>
         ) : null}
 
         {step === "detail" && selected.status === "available" ? (

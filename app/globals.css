@@ -485,14 +485,18 @@ h2.anim-headline {
   left: 3px;
   right: 3px;
   z-index: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   border-radius: 999px;
   padding: 1px 4px;
   font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.03em;
   line-height: 1.2;
   text-align: center;
+  text-transform: none;
 }
 
 .spot-hotspot.is-held .spot-status-chip {

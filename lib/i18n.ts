@@ -84,6 +84,8 @@ export const copy = {
       claim: "RESERVAR",
       held: "RESERVADA",
       sold: "VENDIDA",
+      boughtBy: "Comprado por {brand}",
+      reservedBy: "Reservado por {brand}",
     },
     orbit: {
       hint: "Clic en un número para acercarte a esa posición",
@@ -690,6 +692,8 @@ export const copy = {
       claim: "CLAIM",
       held: "RESERVED",
       sold: "SOLD",
+      boughtBy: "Bought by {brand}",
+      reservedBy: "Reserved by {brand}",
     },
     orbit: {
       hint: "Click a number to zoom into that spot",

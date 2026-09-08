@@ -6,6 +6,7 @@ import { SuitcasePhotoStage } from "./suitcase-photo-stage";
 import { padSpot, TRIP } from "@/lib/positions";
 import { useCurrency } from "./currency-provider";
 import { AnimatedLetters } from "./animated-letters";
+import { spotOwnerLabel } from "@/lib/spot-copy";
 
 export function PositionsBoard() {
   const { dict, locale } = useLanguage();
@@ -67,12 +68,10 @@ export function PositionsBoard() {
             >
               <span className="font-mono text-[11px] font-semibold">{padSpot(spot.id)}</span>
               <strong className="mt-1 block text-lg tracking-tight">{format(spot.price)}</strong>
-              <span className="mono-label mt-1 block">
-                {spot.status === "sold"
-                  ? dict.pick.sold
-                  : spot.status === "reserved"
-                    ? dict.pick.held
-                    : dict.pick.claim}
+              <span className="mono-label mt-1 block normal-case tracking-[0.08em]">
+                {spot.status === "sold" || spot.status === "reserved"
+                  ? spotOwnerLabel(spot, dict)
+                  : dict.pick.claim}
               </span>
             </button>
           ))}

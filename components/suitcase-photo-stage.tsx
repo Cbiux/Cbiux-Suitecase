@@ -269,7 +269,7 @@ function SpotOverlay({
         event.stopPropagation();
         onSelect();
       }}
-      aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, ${format(spot.price)}, ${spot.status}`}
+      aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, ${format(spot.price)}, ${spot.status}${spot.sponsor ? `, ${spot.sponsor}` : ""}`}
       className={`spot-hotspot absolute z-10 box-border flex flex-col items-center justify-center gap-0.5 px-1 ${
         spot.logo ? "overflow-hidden" : "overflow-visible"
       } ${side ? "rounded-2xl" : "rounded-xl"} ${sold ? "is-sold" : held ? "is-held" : ""} ${
@@ -319,7 +319,9 @@ function SpotOverlay({
         </>
       )}
       {sold || held ? (
-        <span className="spot-status-chip">{sold ? dict.pick.sold : dict.pick.held}</span>
+        <span className="spot-status-chip">
+          {spot.sponsor || (sold ? dict.pick.sold : dict.pick.held)}
+        </span>
       ) : null}
     </button>
   );
