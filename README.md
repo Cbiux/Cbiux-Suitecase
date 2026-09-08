@@ -24,7 +24,8 @@ Abrí [http://localhost:43147](http://localhost:43147). El UI arranca en españo
 | `NEXT_PUBLIC_USDC_STELLAR_ADDRESS` | Wallet Stellar USDC. Default: `GAS52…5BS` |
 | `NEXT_PUBLIC_USDC_SOLANA_ADDRESS` | Wallet Solana (opcional, vacío si no hay) |
 | `ADMIN_PASSWORD` | Clave de `/admin` |
-| `UPSTASH_REDIS_REST_URL` | Redis de inventario (producción) |
+| `DATABASE_URL` | Neon Postgres (obligatorio en prod para que lleguen las reservas) |
+| `UPSTASH_REDIS_REST_URL` | Redis legacy (solo si no hay Neon) |
 | `UPSTASH_REDIS_REST_TOKEN` | Token de Upstash |
 | `PAYMENT_VERIFY_MODE` | `stub` (default) o `indexer` |
 | `NEXT_PUBLIC_HELIO_PAY_URL` | Paylink de Helio (opcional) |
@@ -40,7 +41,7 @@ Si `ADMIN_PASSWORD` no está definida, `/admin` acepta `123Cbiux@#$`.
 2. Cargá las env vars de arriba.
 3. Deploy.
 
-El inventario vive en `data/store.json` en local. En Vercel se guarda en **Upstash Redis** si están `UPSTASH_REDIS_REST_URL` y `UPSTASH_REDIS_REST_TOKEN`. Sin Redis, Vercel usa `/tmp` y **un redeploy puede resetear ventas**.
+El inventario vive en **Neon Postgres** (`DATABASE_URL`) en producción. Sin esa variable, local usa `data/store.json` y Vercel cae a `/tmp` (efímero: las solicitudes de reserva se pierden entre instancias). Upstash Redis queda como fallback opcional.
 
 ## Cómo se paga y se verifica
 
@@ -78,7 +79,7 @@ Helio sigue siendo opcional (`NEXT_PUBLIC_HELIO_PAY_URL`).
 - setear sponsor y URL/data-URL del logo
 - resetear una posición
 
-Los comprobantes SINPE se guardan como data URL comprimida (~2 MB) dentro del JSON del store. En Vercel ese archivo vive en `/tmp` y **es efímero**: un redeploy puede borrar capturas. Bajá el comprobante desde `/admin` cuando entre una reserva. Para producción real, mové el store a KV / Postgres.
+Los comprobantes SINPE se guardan como data URL comprimida (~2 MB) dentro del JSON del store en Neon. Sin `DATABASE_URL`, en Vercel el store vive en `/tmp` y **las solicitudes no llegan al admin** (cada instancia tiene su propio disco).
 
 ## Precios
 
