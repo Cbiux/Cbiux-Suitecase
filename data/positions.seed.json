@@ -1,0 +1,29 @@
+{
+  "note": "Canonical prices live in lib/positions.ts. Seed for the 22 carry-on cabin spots (55×40×20 cm).",
+  "startPrice": 45,
+  "currency": "USDC",
+  "positions": [
+    { "id": 1, "face": "front", "name": "Presenting sponsor", "price": 280, "size": "40 × 15 cm", "tier": "presenting" },
+    { "id": 2, "face": "front", "name": "Front upper left", "price": 150, "size": "17 × 12 cm", "tier": "premium" },
+    { "id": 3, "face": "front", "name": "Front upper right", "price": 145, "size": "17 × 12 cm", "tier": "premium" },
+    { "id": 4, "face": "front", "name": "Front lower left", "price": 125, "size": "17 × 12 cm", "tier": "premium" },
+    { "id": 5, "face": "front", "name": "Front lower right", "price": 120, "size": "17 × 12 cm", "tier": "premium" },
+    { "id": 6, "face": "back", "name": "Back headline", "price": 200, "size": "40 × 15 cm", "tier": "premium" },
+    { "id": 7, "face": "back", "name": "Back upper left", "price": 95, "size": "17 × 12 cm", "tier": "mid" },
+    { "id": 8, "face": "back", "name": "Back upper right", "price": 90, "size": "17 × 12 cm", "tier": "mid" },
+    { "id": 9, "face": "back", "name": "Back lower left", "price": 85, "size": "17 × 12 cm", "tier": "mid" },
+    { "id": 10, "face": "back", "name": "Back lower right", "price": 75, "size": "17 × 12 cm", "tier": "mid" },
+    { "id": 11, "face": "left", "name": "Left side upper left", "price": 65, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 12, "face": "left", "name": "Left side upper right", "price": 55, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 13, "face": "left", "name": "Left side lower left", "price": 50, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 14, "face": "left", "name": "Left side lower right", "price": 45, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 15, "face": "right", "name": "Right side upper left", "price": 65, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 16, "face": "right", "name": "Right side upper right", "price": 55, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 17, "face": "right", "name": "Right side lower left", "price": 50, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 18, "face": "right", "name": "Right side lower right", "price": 45, "size": "10 × 10 cm", "tier": "side" },
+    { "id": 19, "face": "front", "name": "Front bottom-band left", "price": 110, "size": "17 × 12 cm", "tier": "premium" },
+    { "id": 20, "face": "front", "name": "Front bottom-band right", "price": 105, "size": "17 × 12 cm", "tier": "premium" },
+    { "id": 21, "face": "back", "name": "Back bottom-band left", "price": 70, "size": "17 × 12 cm", "tier": "mid" },
+    { "id": 22, "face": "back", "name": "Back bottom-band right", "price": 60, "size": "17 × 12 cm", "tier": "mid" }
+  ]
+}

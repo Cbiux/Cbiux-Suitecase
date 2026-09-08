@@ -1,0 +1,154 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+  --font-heading: var(--font-inter);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-sold: #147a4b;
+  --color-held: #8a6a12;
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: #f6f5f2;
+  --foreground: #111111;
+  --card: #ffffff;
+  --card-foreground: #111111;
+  --popover: #ffffff;
+  --popover-foreground: #111111;
+  --primary: #2c3fd1;
+  --primary-foreground: #ffffff;
+  --secondary: #efece6;
+  --secondary-foreground: #111111;
+  --muted: #efece6;
+  --muted-foreground: #5c5b56;
+  --accent: #efece6;
+  --accent-foreground: #111111;
+  --destructive: #c13b38;
+  --border: #e3e0d8;
+  --input: #e3e0d8;
+  --ring: #2c3fd1;
+  --chart-1: #2c3fd1;
+  --chart-2: #5c5b56;
+  --chart-3: #147a4b;
+  --chart-4: #e3e0d8;
+  --chart-5: #ffffff;
+  --radius: 0.85rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #111111;
+  --sidebar-primary: #2c3fd1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #efece6;
+  --sidebar-accent-foreground: #111111;
+  --sidebar-border: #e3e0d8;
+  --sidebar-ring: #2c3fd1;
+  color-scheme: light;
+}
+
+.dark {
+  --background: #111111;
+  --foreground: #f4f3ef;
+  --card: #1c1c1c;
+  --card-foreground: #f4f3ef;
+  --popover: #1c1c1c;
+  --popover-foreground: #f4f3ef;
+  --primary: #4d63f0;
+  --primary-foreground: #ffffff;
+  --secondary: #222222;
+  --secondary-foreground: #f4f3ef;
+  --muted: #1a1a1a;
+  --muted-foreground: #a8a6a0;
+  --accent: #222222;
+  --accent-foreground: #f4f3ef;
+  --destructive: #e06a67;
+  --border: #2e2e2e;
+  --input: #2e2e2e;
+  --ring: #4d63f0;
+  --chart-1: #4d63f0;
+  --chart-2: #a8a6a0;
+  --chart-3: #3dd68c;
+  --chart-4: #2e2e2e;
+  --chart-5: #1c1c1c;
+  --sidebar: #1c1c1c;
+  --sidebar-foreground: #f4f3ef;
+  --sidebar-primary: #4d63f0;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #222222;
+  --sidebar-accent-foreground: #f4f3ef;
+  --sidebar-border: #2e2e2e;
+  --sidebar-ring: #4d63f0;
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans scroll-smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+.mono-label {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.shell {
+  width: min(1120px, calc(100% - 32px));
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .shell {
+    width: min(1120px, calc(100% - 48px));
+  }
+}
