@@ -161,7 +161,7 @@ function SuitcaseView({
 
   return (
     <figure>
-      <div className={`relative mx-auto w-full ${compact ? "max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]" : "max-w-[520px] pb-8 pr-7 lg:max-w-none"}`}>
+      <div className={`relative mx-auto w-full ${compact ? "hero-suitcase-stage max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]" : "max-w-[520px] pb-8 pr-7 lg:max-w-none"}`}>
         <div
           className={`overflow-visible ${
             compact
@@ -195,12 +195,13 @@ function SuitcaseView({
                   className="pointer-events-none absolute inset-0 h-full w-full object-contain drop-shadow-[0_18px_30px_rgba(17,17,17,0.18)] dark:drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)]"
                   style={{ transform: photo.mirror ? "scaleX(-1)" : undefined }}
                 />
-                {spots.map((spot) => (
+                {spots.map((spot, index) => (
                   <SpotOverlay
                     key={spot.id}
                     spot={spot}
                     mirror={photo.mirror}
                     active={selectedId === spot.id}
+                    revealIndex={compact ? index : undefined}
                     onSelect={() => {
                       setActiveFace(face);
                       setSelectedId(spot.id);
@@ -243,11 +244,13 @@ function SpotOverlay({
   spot,
   mirror,
   active,
+  revealIndex,
   onSelect,
 }: {
   spot: LivePosition;
   mirror: boolean;
   active: boolean;
+  revealIndex?: number;
   onSelect: () => void;
 }) {
   const { format, currency } = useCurrency();
@@ -270,12 +273,13 @@ function SpotOverlay({
         spot.logo ? "overflow-hidden" : "overflow-visible"
       } ${side ? "rounded-2xl" : "rounded-xl"} ${sold ? "is-sold" : held ? "is-held" : ""} ${
         active ? "is-active" : ""
-      }`}
+      } ${revealIndex != null ? "spot-reveal" : ""}`}
       style={{
         left: `${left}%`,
         top: `${spot.y}%`,
         width: `${spot.width}%`,
         height: `${spot.height}%`,
+        animationDelay: revealIndex != null ? `${420 + revealIndex * 110}ms` : undefined,
       }}
     >
       {spot.logo ? (

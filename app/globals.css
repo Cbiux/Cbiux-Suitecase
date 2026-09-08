@@ -208,6 +208,28 @@
   }
 }
 
+@keyframes suitcase-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes spot-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 .hero-blueprint {
   background-image:
     linear-gradient(to right, color-mix(in oklab, var(--foreground) 6%, transparent) 1px, transparent 1px),
@@ -249,6 +271,43 @@ h2.anim-headline {
 .anim-accent {
   display: inline-block;
   animation: accent-in 900ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-suitcase-stage {
+  animation: suitcase-in 820ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.route-globe-canvas {
+  touch-action: none;
+}
+
+.route-globe-canvas canvas {
+  cursor: grab;
+}
+
+.route-globe-canvas canvas:active {
+  cursor: grabbing;
+}
+
+.scene-tooltip {
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f4f3ef !important;
+  background: #0b1b4a !important;
+  border-radius: 8px;
+  padding: 6px 8px !important;
+}
+
+.spot-hotspot.spot-reveal {
+  animation: spot-reveal 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+.spot-hotspot.spot-reveal .spot-id,
+.spot-hotspot.spot-reveal .spot-price {
+  animation: none;
 }
 
 .spot-hotspot {
@@ -349,9 +408,14 @@ h2.anim-headline {
   .headline-word,
   .headline-accent,
   .anim-headline,
+  .hero-suitcase-stage,
+  .spot-hotspot.spot-reveal,
   .spot-hotspot .spot-id,
   .spot-hotspot .spot-price {
     animation: none;
+  }
+  .spot-hotspot.spot-reveal {
+    opacity: 1;
   }
   .headline-accent {
     color: var(--primary);

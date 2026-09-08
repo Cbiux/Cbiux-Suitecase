@@ -105,7 +105,8 @@ Después del picker (`#offer`) hay un formulario bilingüe para que una marca pr
 - `/public/suitcase-front.png` — frente (el reverso / atrás lo espeja el CSS)
 - `/public/suitcase-side.png` — perfil (lado y contrario)
 - `/public/photo.jpg` — still del vlog diario
-- `/public/og.png` — OG 1200×630
+- `/public/og.png` — preview del link (OG) 1200×630
+- `/public/promo.png` — imagen cuadrada para postear (también en `/promo`)
 
 ## Contacto
 

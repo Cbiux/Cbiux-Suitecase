@@ -16,24 +16,24 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:43147"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cbiux-suitecase.vercel.app"),
   title: "Poné tu marca en mi ruta a Europa e India | Cbiux",
   description:
     "22 posiciones en la maleta de cabina de Sebastián (Cbiux), 55×40×20 cm, rumbo a Compile Amsterdam, Europa y Devcon India. Vlog diario de todo el trip. Desde $45.",
   openGraph: {
-    title: "Put your brand on my road to Europe & India",
-    description: "22 spots on a carry-on cabin bag (55×40×20 cm) from $45. Daily vlog for the whole Costa Rica → Compile → Devcon route.",
-    images: [{ url: "/og.png", width: 1200, height: 675 }],
+    title: "Tu marca, en mi ruta a Europa e India",
+    description: "22 spots en una maleta de cabina (55×40×20 cm) desde $45. Vlog diario Costa Rica → Compile → Devcon.",
     type: "website",
+    locale: "es_CR",
+    siteName: "cbiux",
   },
   icons: {
     icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Put your brand on my road to Europe & India",
-    description: "22 carry-on cabin spots from $45. Daily vlog for the whole route. SINPE or USDC.",
-    images: ["/og.png"],
+    title: "Tu marca, en mi ruta a Europa e India",
+    description: "22 spots de cabina desde $45. Vlog diario de todo el trip. SINPE o USDC.",
     creator: "@Cbiux_04",
   },
 };

@@ -4,6 +4,7 @@ import { SITE } from "@/lib/config";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { BrandLogo } from "./brand-logo";
+import { RouteMap } from "./route-map";
 
 export function DailyVlog() {
   const { dict } = useLanguage();
@@ -107,24 +108,29 @@ export function Funds() {
   const { dict } = useLanguage();
   return (
     <section id="trip" className="shell py-16 md:py-24">
-      <p className="mono-label text-primary">{dict.funds.kicker}</p>
-      <h2 className="anim-headline mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
-        {dict.funds.title}
-      </h2>
-      <p className="mt-4 max-w-[640px] text-muted-foreground">{dict.funds.intro}</p>
-      <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
-        {dict.funds.items.map((item, index) => (
-          <p
-            key={item.n}
-            className={`flex gap-6 px-5 py-5 ${index < dict.funds.items.length - 1 ? "border-b border-border" : ""}`}
-          >
-            <small className="mono-label w-8 text-primary">{item.n}</small>
-            <span>
-              <strong className="block">{item.title}</strong>
-              {item.note ? <em className="mt-1 block text-sm text-muted-foreground not-italic">{item.note}</em> : null}
-            </span>
-          </p>
-        ))}
+      <RouteMap />
+      <div className="mt-16 md:mt-24">
+        <p className="mono-label text-primary">{dict.funds.kicker}</p>
+        <h2 className="anim-headline mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+          {dict.funds.title}
+        </h2>
+        <p className="mt-4 max-w-[640px] text-muted-foreground">{dict.funds.intro}</p>
+        <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
+          {dict.funds.items.map((item, index) => (
+            <p
+              key={item.n}
+              className={`flex gap-6 px-5 py-5 ${index < dict.funds.items.length - 1 ? "border-b border-border" : ""}`}
+            >
+              <small className="mono-label w-8 text-primary">{item.n}</small>
+              <span>
+                <strong className="block">{item.title}</strong>
+                {item.note ? (
+                  <em className="mt-1 block text-sm text-muted-foreground not-italic">{item.note}</em>
+                ) : null}
+              </span>
+            </p>
+          ))}
+        </div>
       </div>
     </section>
   );
