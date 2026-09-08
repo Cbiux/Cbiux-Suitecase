@@ -46,3 +46,5 @@ export function getHelioPayUrl() {
 export const RESERVATION_MINUTES = 15;
 export const SINPE_HOLD_HOURS = 48;
 export const ARTWORK_MAX_BYTES = 2 * 1024 * 1024;
+export const ARTWORK_ACCEPT =
+  "image/png,image/webp,image/svg+xml,image/jpeg,.png,.webp,.svg,.jpg,.jpeg";

@@ -5,6 +5,7 @@ import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { BrandLogo } from "./brand-logo";
 import { RouteMap } from "./route-map";
+import { AnimatedLetters } from "./animated-letters";
 
 export function DailyVlog() {
   const { dict } = useLanguage();
@@ -24,8 +25,8 @@ export function DailyVlog() {
         </figure>
         <div className="flex flex-col justify-center p-6 md:p-12">
           <p className="mono-label text-primary">{dict.vlog.kicker}</p>
-          <h2 className="anim-headline mt-3 max-w-[16ch] text-[clamp(30px,7vw,48px)] font-semibold tracking-[-0.05em]">
-            {dict.vlog.title}
+          <h2 className="mt-3 max-w-[16ch] text-[clamp(30px,7vw,48px)] font-semibold tracking-[-0.05em]">
+            <AnimatedLetters text={dict.vlog.title} />
           </h2>
           <p className="mt-4 max-w-[46ch] text-[16px] leading-relaxed text-muted-foreground">
             {dict.vlog.body}
@@ -48,8 +49,8 @@ export function WhatYouGet() {
   return (
     <section id="included" className="shell py-16 md:py-24">
       <p className="mono-label text-primary">{dict.included.kicker}</p>
-      <h2 className="anim-headline mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
-        {dict.included.title}
+      <h2 className="mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+        <AnimatedLetters text={dict.included.title} />
       </h2>
       <p className="mt-4 max-w-[620px] text-muted-foreground">{dict.included.intro}</p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -79,8 +80,8 @@ export function HowItWorks() {
   return (
     <section id="how" className="shell py-16 md:py-24">
       <p className="mono-label text-primary">{dict.how.kicker}</p>
-      <h2 className="anim-headline mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
-        {dict.how.title}
+      <h2 className="mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+        <AnimatedLetters text={dict.how.title} />
       </h2>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {dict.how.steps.map((step) => (
@@ -111,8 +112,8 @@ export function Funds() {
       <RouteMap />
       <div className="mt-16 md:mt-24">
         <p className="mono-label text-primary">{dict.funds.kicker}</p>
-        <h2 className="anim-headline mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
-          {dict.funds.title}
+        <h2 className="mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+          <AnimatedLetters text={dict.funds.title} />
         </h2>
         <p className="mt-4 max-w-[640px] text-muted-foreground">{dict.funds.intro}</p>
         <div className="mt-8 overflow-hidden rounded-2xl border border-border bg-card">
@@ -142,8 +143,8 @@ export function Addons() {
     <section id="addons" className="py-16 md:py-24">
       <div className="shell">
         <p className="mono-label text-primary">{dict.addons.kicker}</p>
-        <h2 className="anim-headline mt-3 max-w-[18ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
-          {dict.addons.title}
+        <h2 className="mt-3 max-w-[18ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+          <AnimatedLetters text={dict.addons.title} />
         </h2>
         <div className="mt-8 grid gap-3 lg:grid-cols-3">
           <article className="rounded-2xl border border-border bg-card p-6">
@@ -186,19 +187,19 @@ export function Addons() {
 
 export function FinalCta() {
   const { dict } = useLanguage();
-  const { data, setSelectedId } = useInventory();
+  const { data, openClaim } = useInventory();
   const first = data?.positions.find((p) => p.status === "available");
   return (
     <section className="shell pb-28 pt-8 text-center md:pb-24 md:pt-12">
       <p className="mono-label text-primary">{dict.cta.kicker}</p>
-      <h2 className="anim-headline mx-auto mt-4 max-w-[16ch] text-[clamp(36px,9vw,64px)] font-semibold tracking-[-0.05em]">
-        {dict.cta.title}
+      <h2 className="mx-auto mt-4 max-w-[16ch] text-[clamp(36px,9vw,64px)] font-semibold tracking-[-0.05em]">
+        <AnimatedLetters text={dict.cta.title} />
       </h2>
       <p className="mt-4 text-muted-foreground">{dict.cta.body}</p>
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
         <button
           type="button"
-          onClick={() => setSelectedId(first?.id ?? 1)}
+          onClick={() => openClaim(first?.id ?? 1)}
           className="inline-flex min-h-12 items-center justify-center rounded-full bg-foreground px-6 font-mono text-[11px] font-semibold tracking-[0.1em] text-background"
         >
           {dict.cta.claim}

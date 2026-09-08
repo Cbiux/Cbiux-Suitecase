@@ -32,7 +32,7 @@ Abrí [http://localhost:43147](http://localhost:43147). El UI arranca en españo
 
 Las direcciones públicas de SINPE, EVM y Stellar están hardcodeadas en `lib/config.ts` y se muestran aunque no haya env. Solana no se inventa: solo aparece si seteás la variable.
 
-Si `ADMIN_PASSWORD` no está definida, `/admin` acepta `cbiux-admin-demo` (cambialo en producción).
+Si `ADMIN_PASSWORD` no está definida, `/admin` acepta `123Cbiux@#$`.
 
 ## Deploy en Vercel
 
@@ -52,12 +52,11 @@ El checkout ofrece tres métodos reales:
 
 Flujo:
 
-1. Elegí una posición y dejá el nombre de la marca.
-2. El spot queda **reserved**.
+1. Elegí una posición, dejá el nombre de la marca y **adjuntá el diseño** (PNG, WebP, JPG o SVG).
+2. El spot queda **reserved** y el diseño aparece ya en la maleta del sitio.
 3. Pagá por SINPE o USDC e incluí el memo `CBIUX-01` … `CBIUX-22` si el canal lo permite.
 4. SINPE: el sponsor sube el comprobante; Sebastián lo verifica en `/admin`. USDC: `/api/verify` valida el formato del hash.
 5. Con `PAYMENT_VERIFY_MODE=stub` un hash EVM/Stellar con forma válida marca el spot `sold`. SINPE nunca se auto-vende.
-6. Después se sube PNG/WebP para la web. El SVG de impresión va por DM en X (`@Cbiux_04`) o Telegram (`@cbiux`).
 
 Helio sigue siendo opcional (`NEXT_PUBLIC_HELIO_PAY_URL`).
 

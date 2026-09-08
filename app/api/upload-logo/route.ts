@@ -1,9 +1,8 @@
 import { ARTWORK_MAX_BYTES } from "@/lib/config";
+import { parseArtworkDataUrl } from "@/lib/artwork";
 import { publishLogo } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
-
-const ALLOWED = /^data:image\/(png|webp);base64,/;
 
 export async function POST(request: Request) {
   try {
@@ -18,14 +17,12 @@ export async function POST(request: Request) {
     if (!positionId || !recoveryToken || !dataUrl) {
       return Response.json({ error: "MISSING_FIELDS" }, { status: 400 });
     }
-    if (!ALLOWED.test(dataUrl)) {
-      return Response.json({ error: "BAD_IMAGE" }, { status: 400 });
-    }
-    const approxBytes = Math.ceil((dataUrl.length * 3) / 4);
-    if (approxBytes > ARTWORK_MAX_BYTES) {
+    const artwork = parseArtworkDataUrl(dataUrl);
+    const approxBytes = Math.ceil((artwork.length * 3) / 4);
+    if (approxBytes > ARTWORK_MAX_BYTES + 64_000) {
       return Response.json({ error: "TOO_LARGE" }, { status: 400 });
     }
-    const result = await publishLogo({ positionId, recoveryToken, dataUrl });
+    const result = await publishLogo({ positionId, recoveryToken, dataUrl: artwork });
     return Response.json(result);
   } catch (error) {
     const code = error instanceof Error ? error.message : "UPLOAD_FAILED";

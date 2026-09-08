@@ -3,6 +3,7 @@ import { POSITION_CATALOG } from "./positions";
 import { t } from "./i18n";
 import { getWallets, RESERVATION_MINUTES, SINPE_HOLD_HOURS } from "./config";
 import { parseComprobanteDataUrl } from "./comprobante";
+import { parseArtworkDataUrl } from "./artwork";
 import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
 import { loadStoreRaw, saveStoreRaw } from "./persist";
 import type {
@@ -90,8 +91,7 @@ function expireReservations(store: StoreShape) {
     if (state.status !== "reserved") continue;
     const until = state.reservedUntil ? Date.parse(state.reservedUntil) : 0;
     if (!until || until <= now) {
-      const logo = state.logo;
-      Object.assign(state, emptyState(), { logo });
+      Object.assign(state, emptyState());
     }
   }
 }
@@ -149,6 +149,7 @@ export async function startCheckout(input: {
   positionId: number;
   brandName: string;
   email?: string;
+  logo?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -168,12 +169,14 @@ export async function startCheckout(input: {
     const reservedUntil = new Date(
       Date.now() + RESERVATION_MINUTES * 60_000,
     ).toISOString();
+    const logo = input.logo ? parseArtworkDataUrl(input.logo) : "";
 
     store.positions[String(catalog.id)] = {
       ...state,
       status: "reserved",
       sponsor: input.brandName.trim(),
       email: input.email?.trim() ?? "",
+      logo,
       reservedUntil,
       recoveryToken,
       checkoutToken,
@@ -190,6 +193,7 @@ export async function startCheckout(input: {
       checkoutToken,
       reservedUntil,
       wallets: getWallets(),
+      logo,
     };
   });
 }
@@ -288,17 +292,18 @@ export async function publishLogo(input: {
 }) {
   return withLock(async () => {
     const store = await readStore();
-    const state = store.positions[String(input.positionId)];
-    if (!state || state.status !== "sold") throw new Error("NOT_SOLD");
-    if (!safeEqual(state.recoveryToken, input.recoveryToken)) {
-      throw new Error("BAD_TOKEN");
+    expireReservations(store);
+    const state = restoreReservation(store, input.positionId, input.recoveryToken);
+    if (state.status !== "sold" && state.status !== "reserved") {
+      throw new Error("NOT_RESERVED");
     }
+    const logo = parseArtworkDataUrl(input.dataUrl);
     store.positions[String(input.positionId)] = {
       ...state,
-      logo: input.dataUrl,
+      logo,
     };
     await persist(store);
-    return { logo: input.dataUrl };
+    return { logo };
   });
 }
 

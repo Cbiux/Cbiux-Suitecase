@@ -19,6 +19,7 @@ type InventoryContextValue = {
   refresh: () => Promise<void>;
   selectedId: number | null;
   setSelectedId: (id: number | null) => void;
+  openClaim: (id: number) => void;
   activeFace: Face;
   setActiveFace: (face: Face) => void;
   selected: LivePosition | undefined;
@@ -104,6 +105,15 @@ export function InventoryProvider({
     [selectedId, approachPhase],
   );
 
+  const openClaim = useCallback((id: number) => {
+    const catalog = getCatalogById(id);
+    if (catalog) setActiveFaceState(catalog.face);
+    setSelectedIdState(id);
+    setFacePinned(false);
+    setClaimOpen(true);
+    setApproachPhase("focused");
+  }, []);
+
   const setActiveFace = useCallback(
     (face: Face) => {
       setActiveFaceState(face);
@@ -140,6 +150,7 @@ export function InventoryProvider({
       refresh,
       selectedId,
       setSelectedId,
+      openClaim,
       activeFace,
       setActiveFace,
       selected,
@@ -156,6 +167,7 @@ export function InventoryProvider({
       refresh,
       selectedId,
       setSelectedId,
+      openClaim,
       activeFace,
       setActiveFace,
       selected,

@@ -5,11 +5,12 @@ import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { useCurrency } from "./currency-provider";
 import { HeroSuitcasePreview } from "./suitcase-photo-stage";
+import { AnimatedLetters } from "./animated-letters";
 
 export function Hero() {
   const { dict } = useLanguage();
   const { format } = useCurrency();
-  const { data, setSelectedId } = useInventory();
+  const { data, openClaim } = useInventory();
   const first = data?.positions.find((p) => p.status === "available");
   const available = data?.available ?? TRIP.spotCount;
   const stats = [
@@ -23,14 +24,14 @@ export function Hero() {
       <div className="shell grid items-center gap-10 pb-10 pt-8 md:grid-cols-2 lg:gap-12 lg:pb-16 lg:pt-12">
         <div className="text-left">
           <p className="anim-fade-up mono-label text-primary">{dict.hero.kicker}</p>
-          <h1 className="headline anim-headline mt-4 max-w-[16ch] text-[clamp(40px,9vw,72px)] font-semibold leading-[0.92] tracking-[-0.055em]">
-            <span className="headline-word" style={{ animationDelay: "40ms" }}>
-              {dict.hero.titleA}
-            </span>{" "}
-            <span className="headline-word" style={{ animationDelay: "140ms" }}>
-              {dict.hero.titleB}
-            </span>{" "}
-            <span className="headline-accent">{dict.hero.titleAccent}</span>
+          <h1 className="headline mt-4 max-w-[16ch] text-[clamp(40px,9vw,72px)] font-semibold leading-[0.92] tracking-[-0.055em]">
+            <AnimatedLetters
+              parts={[
+                { text: dict.hero.titleA },
+                { text: dict.hero.titleB },
+                { text: dict.hero.titleAccent, accent: true },
+              ]}
+            />
           </h1>
           <p
             className="anim-fade-up mt-5 max-w-[42ch] text-[16px] leading-relaxed text-muted-foreground md:text-[18px]"
@@ -54,7 +55,7 @@ export function Hero() {
           <div className="mt-7 flex flex-col gap-2 sm:flex-row">
             <button
               type="button"
-              onClick={() => setSelectedId(first?.id ?? 1)}
+              onClick={() => openClaim(first?.id ?? 1)}
               className="inline-flex min-h-12 items-center justify-center rounded-full bg-foreground px-6 font-mono text-[11px] font-semibold tracking-[0.1em] text-background"
             >
               {dict.hero.cta}

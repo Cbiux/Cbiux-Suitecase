@@ -8,7 +8,7 @@ import { TRIP } from "@/lib/positions";
 export function StickyCta() {
   const { dict } = useLanguage();
   const { format } = useCurrency();
-  const { data, setSelectedId, claimOpen } = useInventory();
+  const { data, openClaim, claimOpen } = useInventory();
   const first = data?.positions.find((p) => p.status === "available");
   const available = data?.available ?? 0;
 
@@ -27,7 +27,7 @@ export function StickyCta() {
         </div>
         <button
           type="button"
-          onClick={() => setSelectedId(first?.id ?? 1)}
+          onClick={() => openClaim(first?.id ?? 1)}
           className="inline-flex min-h-12 shrink-0 items-center rounded-full bg-foreground px-5 font-mono text-[11px] font-semibold tracking-[0.1em] text-background"
         >
           {dict.hero.cta}

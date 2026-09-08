@@ -154,8 +154,8 @@ export const copy = {
         },
         {
           n: "STEP 03",
-          title: "Subí el PNG + mandá el SVG",
-          body: "Después del pago, subí un PNG o WebP transparente para la web. El SVG para impresión lo mandás por DM en X (@Cbiux_04) o Telegram (@cbiux).",
+          title: "Adjuntá el diseño",
+          body: "Subí el PNG, WebP, JPG o SVG al reservar. Se coloca ya en la maleta del sitio para ver cómo queda antes de imprimirlo.",
         },
         {
           n: "STEP 04",
@@ -301,13 +301,13 @@ export const copy = {
       sinpeHelp:
         "Enviá el precio del spot (USD o el equivalente en colones) al 84358038. En el comentario de la transferencia poné el memo si podés. Después subí el comprobante. Sebastián lo revisa y marca el spot vendido en /admin.",
       sinpeWait:
-        "Recibí el comprobante. El spot queda reservado. Sebastián verifica la captura y lo marca sold desde /admin.",
+        "Recibí el comprobante y el diseño. El spot queda reservado. Sebastián verifica la captura y lo marca sold desde /admin.",
       sinpeSubmit: "ENVIAR COMPROBANTE SINPE",
       sinpeReference: "Referencia o nota de la transferencia (opcional)",
       sinpeReceipt: "Subí una captura o foto del comprobante SINPE",
       sinpeReceiptHint: "JPG, PNG o WebP. Máximo 8 MB. La comprimimos para guardarla.",
       sinpeNeedReceipt: "El comprobante es obligatorio.",
-      sinpeBadImage: "Usá una imagen JPG, PNG o WebP.",
+      sinpeBadImage: "Usá una imagen PNG, WebP, JPG o un SVG.",
       sinpeTooLarge: "El archivo pesa demasiado. Probá una captura más liviana.",
       sinpeUploading: "SUBIENDO COMPROBANTE",
       paste: "Hash de la transacción",
@@ -320,7 +320,7 @@ export const copy = {
       successTitle: "YA TENÉS TU SPOT",
       uploadLabel: "Subí un logo para la web",
       uploadHint:
-        "PNG o WebP transparente, máximo 2 MB. Esto es solo para el sitio. El SVG de impresión mandalo por DM en X.",
+        "PNG, WebP, JPG o SVG, máximo 2 MB. Se coloca en la maleta de una vez para ver cómo queda.",
       publish: "PUBLICAR LOGO",
       publishing: "PUBLICANDO",
       sendSvg: "MANDAR SVG POR X",
@@ -331,12 +331,18 @@ export const copy = {
       soldNote: "Esta posición ya no está disponible.",
       heldNote: "Alguien la está pagando. Si no confirma, se libera sola.",
       attachReceipt: "Adjuntar comprobante SINPE",
-      attachLogo: "Adjuntar logo de la marca",
+      attachLogo: "Adjuntar diseño de la marca",
       attached: "Archivo listo",
       needBrand: "Escribí el nombre de la marca para continuar.",
+      needArtwork: "Adjuntá el diseño de la marca (PNG, WebP, JPG o SVG) para continuar.",
       payExpired: "La reserva expiró o se perdió. Cerrá esto y volvé a empezar el pago.",
       checkoutFailed: "No se pudo preparar el pago. Probá de nuevo en un momento.",
       sinpeFailed: "No se pudo enviar el comprobante. Probá de nuevo.",
+      pendingKicker: "RESERVA ENVIADA",
+      pendingTitle: "Diseño recibido",
+      pendingBody:
+        "El diseño ya está en la maleta y el comprobante SINPE quedó para revisión. Sebastián confirma el pago en /admin.",
+      artworkOnBag: "Este archivo se coloca ya en el spot. Después lo imprimimos sobre la maleta.",
     },
     footer: {
       trip: "Compile → Devcon · 2026",
@@ -754,8 +760,8 @@ export const copy = {
         },
         {
           n: "STEP 03",
-          title: "Upload PNG + send the SVG",
-          body: "After payment, upload a transparent PNG or WebP for the site. Send the print SVG via X DM (@Cbiux_04) or Telegram (@cbiux).",
+          title: "Attach the artwork",
+          body: "Upload PNG, WebP, JPG or SVG when you reserve. It goes on the suitcase on the site right away so you can see the placement before we print it.",
         },
         {
           n: "STEP 04",
@@ -901,13 +907,13 @@ export const copy = {
       sinpeHelp:
         "Send the spot price (USD or CRC equivalent) to 84358038. Put the memo in the transfer comment if you can. Then upload the receipt. Sebastián reviews it and marks the spot sold from /admin.",
       sinpeWait:
-        "Got the receipt. The spot stays reserved. Sebastián will verify the screenshot and mark it sold from /admin.",
+        "Got the receipt and the artwork. The spot stays reserved. Sebastián will verify the screenshot and mark it sold from /admin.",
       sinpeSubmit: "UPLOAD SINPE RECEIPT",
       sinpeReference: "Transfer reference or note (optional)",
       sinpeReceipt: "Upload a SINPE receipt screenshot or photo",
       sinpeReceiptHint: "JPG, PNG or WebP. Max 8 MB. We compress it before storing.",
       sinpeNeedReceipt: "A receipt image is required.",
-      sinpeBadImage: "Use a JPG, PNG or WebP image.",
+      sinpeBadImage: "Use a PNG, WebP, JPG or SVG file.",
       sinpeTooLarge: "That file is too large. Try a lighter screenshot.",
       sinpeUploading: "UPLOADING RECEIPT",
       paste: "Transaction hash",
@@ -920,7 +926,7 @@ export const copy = {
       successTitle: "I GOT MY SPOT",
       uploadLabel: "Upload a logo for the website",
       uploadHint:
-        "Transparent PNG or WebP, 2 MB max. This is for the site only. Send the print SVG via X DM.",
+        "PNG, WebP, JPG or SVG, 2 MB max. It goes on the suitcase immediately so you can see the placement.",
       publish: "PUBLISH DISPLAY LOGO",
       publishing: "PUBLISHING",
       sendSvg: "SEND SVG ON X",
@@ -931,12 +937,18 @@ export const copy = {
       soldNote: "This position is no longer available.",
       heldNote: "Someone is paying for this spot. It frees itself if they do not confirm.",
       attachReceipt: "Attach SINPE receipt",
-      attachLogo: "Attach brand logo",
+      attachLogo: "Attach brand artwork",
       attached: "File ready",
       needBrand: "Enter the brand name to continue.",
+      needArtwork: "Attach the brand artwork (PNG, WebP, JPG or SVG) to continue.",
       payExpired: "The reservation expired or was lost. Close this and start the payment again.",
       checkoutFailed: "Could not start checkout. Try again in a moment.",
       sinpeFailed: "Could not send the receipt. Try again.",
+      pendingKicker: "RESERVATION SENT",
+      pendingTitle: "Artwork received",
+      pendingBody:
+        "The artwork is already on the suitcase and the SINPE receipt is waiting for review. Sebastián confirms the payment from /admin.",
+      artworkOnBag: "This file goes on the spot now. We print it on the suitcase afterwards.",
     },
     footer: {
       trip: "Compile → Devcon · 2026",

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { padStop, PLACE_IDS, PLACES, ROUTE_VISITS, type PlaceId } from "@/lib/trip-route";
 import { useLanguage } from "./language-provider";
+import { AnimatedLetters } from "./animated-letters";
 
 const TripGlobe = dynamic(() => import("./trip-globe"), {
   ssr: false,
@@ -71,8 +72,8 @@ export function RouteMap() {
   return (
     <div>
       <p className="mono-label text-primary">{dict.route.kicker}</p>
-      <h2 className="anim-headline mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
-        {dict.route.title}
+      <h2 className="mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+        <AnimatedLetters text={dict.route.title} />
       </h2>
       <p className="mt-4 max-w-[640px] text-muted-foreground">{dict.route.body}</p>
 
@@ -128,7 +129,7 @@ export function RouteMap() {
           </ol>
         </div>
 
-        <div className="overflow-hidden rounded-[28px] border border-border bg-[#070b18] shadow-[0_18px_40px_rgba(11,27,74,0.16)]">
+        <div className="route-globe-stage overflow-hidden rounded-[28px] border border-border shadow-[0_22px_50px_rgba(11,27,74,0.22)]">
           <div className="aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5] xl:aspect-[5/4]">
             <TripGlobe
               labels={labels}

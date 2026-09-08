@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 const COOKIE = "cbiux_admin";
 
 function secret() {
-  return process.env.ADMIN_PASSWORD || "cbiux-admin-demo";
+  return process.env.ADMIN_PASSWORD || "123Cbiux@#$";
 }
 
 export function adminConfigured() {

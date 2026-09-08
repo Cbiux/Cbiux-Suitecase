@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import QRCode from "qrcode";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { compressReceipt } from "@/lib/compress-receipt";
-import { SITE } from "@/lib/config";
+import { ARTWORK_ACCEPT, SITE } from "@/lib/config";
 import { padSpot } from "@/lib/positions";
 import { formatMoney } from "@/lib/currency";
 import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
@@ -60,6 +60,8 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const [memo, setMemo] = useState("");
   const [qr, setQr] = useState("");
   const [logo, setLogo] = useState("");
+  const [logoName, setLogoName] = useState("");
+  const [verified, setVerified] = useState(false);
 
   const wallets = data?.wallets;
   const address =
@@ -77,6 +79,21 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 22 spots · desde ${formatMoney(45, currency)} · USDC`
       : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 22 spots · from ${formatMoney(45, currency)} · USDC`;
   }, [selected, brandName, locale, currency]);
+
+  useEffect(() => {
+    try {
+      const token = sessionStorage.getItem(grantKey(selected.id));
+      if (!token) return;
+      setRecoveryToken(token);
+      if (selected.status === "reserved") setStep("pay");
+      if (selected.logo) {
+        setLogo(selected.logo);
+        setLogoName(dict.claim.attached);
+      }
+    } catch {
+      /* ignore private mode */
+    }
+  }, [dict.claim.attached, selected.id, selected.logo, selected.status]);
 
   async function makeQr(nextNetwork: PaymentNetwork, nextWallets: PaymentWallets) {
     const value =
@@ -101,6 +118,10 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
 
   async function startPay(event: React.FormEvent) {
     event.preventDefault();
+    if (!logo) {
+      setStatus(dict.claim.needArtwork);
+      return;
+    }
     setBusy(true);
     setStatus("");
     try {
@@ -111,10 +132,19 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
           positionId: selected.id,
           brandName,
           email,
+          logo,
         }),
       });
       const json = await response.json();
-      if (!response.ok) throw new Error(json.error);
+      if (!response.ok) {
+        if (json.error === "RESERVED" && currentGrant()) {
+          if (wallets) await makeQr("sinpe", wallets);
+          setStep("pay");
+          await refresh();
+          return;
+        }
+        throw new Error(json.error);
+      }
       rememberGrant(selected.id, json.recoveryToken);
       setMemo(json.memo);
       if (json.wallets) await makeQr("sinpe", json.wallets);
@@ -156,6 +186,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
 
   function payError(code: string) {
     if (code === "MISSING_FIELDS") return dict.claim.needBrand;
+    if (code === "MISSING_ARTWORK") return dict.claim.needArtwork;
     if (code === "SOLD") return dict.claim.soldNote;
     if (code === "RESERVED") return dict.claim.heldNote;
     if (code === "BAD_TOKEN" || code === "NOT_RESERVED") return dict.claim.payExpired;
@@ -212,6 +243,8 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
       setSinpeSent(true);
+      setVerified(false);
+      setStep("success");
       await refresh();
     } catch (error) {
       setStatus(receiptError(error instanceof Error ? error.message : "SINPE_FAILED"));
@@ -237,6 +270,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
+      setVerified(true);
       setStep("success");
       await refresh();
     } catch (error) {
@@ -273,7 +307,9 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
 
   function onFile(file: File | undefined) {
     if (!file) return;
-    if (!["image/png", "image/webp"].includes(file.type)) {
+    const named = /\.(png|webp|svg|jpe?g)$/i.test(file.name);
+    const typed = ["image/png", "image/webp", "image/svg+xml", "image/jpeg", "image/jpg"].includes(file.type);
+    if (!typed && !named) {
       setStatus(dict.claim.sinpeBadImage);
       return;
     }
@@ -282,7 +318,10 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setLogo(String(reader.result));
+    reader.onload = () => {
+      setLogo(String(reader.result));
+      setLogoName(file.name);
+    };
     reader.readAsDataURL(file);
   }
 
@@ -350,7 +389,17 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <Button type="submit" className="w-full rounded-full" disabled={busy}>
+            <FileAttachButton
+              id="artwork"
+              label={dict.claim.attachLogo}
+              hint={dict.claim.artworkOnBag}
+              accept={ARTWORK_ACCEPT}
+              required
+              fileName={logoName}
+              previewUrl={logo}
+              onFile={onFile}
+            />
+            <Button type="submit" className="w-full rounded-full" disabled={busy || !logo}>
               {busy ? dict.claim.preparing : dict.claim.continue}
             </Button>
           </form>
@@ -468,19 +517,27 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
 
         {step === "success" ? (
           <div className="mt-8 space-y-5">
-            <p className="mono-label text-[#147a4b]">{dict.claim.successKicker}</p>
-            <h3 className="text-3xl font-semibold tracking-tight">{dict.claim.successTitle}</h3>
+            <p className={`mono-label ${verified ? "text-[#147a4b]" : "text-primary"}`}>
+              {verified ? dict.claim.successKicker : dict.claim.pendingKicker}
+            </p>
+            <h3 className="text-3xl font-semibold tracking-tight">
+              {verified ? dict.claim.successTitle : dict.claim.pendingTitle}
+            </h3>
             <p className="text-sm text-muted-foreground">
               {brandName} · {selected.name} · {format(selected.price)}
             </p>
-            <p className="break-all font-mono text-[11px] text-muted-foreground">{txHash}</p>
+            {verified && txHash ? (
+              <p className="break-all font-mono text-[11px] text-muted-foreground">{txHash}</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">{dict.claim.pendingBody}</p>
+            )}
             <form className="space-y-3" onSubmit={publish}>
               <FileAttachButton
                 id="logo"
                 label={dict.claim.attachLogo}
                 hint={dict.claim.uploadHint}
-                accept="image/png,image/webp"
-                fileName={logo ? dict.claim.attached : ""}
+                accept={ARTWORK_ACCEPT}
+                fileName={logoName || (logo ? dict.claim.attached : "")}
                 previewUrl={logo}
                 onFile={onFile}
               />

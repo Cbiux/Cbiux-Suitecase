@@ -9,7 +9,7 @@ import { BrandLogo } from "./brand-logo";
 
 export function Header() {
   const { locale, setLocale, dict } = useLanguage();
-  const { setSelectedId, data } = useInventory();
+  const { openClaim, data } = useInventory();
   const firstAvailable = data?.positions.find((p) => p.status === "available");
 
   return (
@@ -63,7 +63,7 @@ export function Header() {
           <button
             type="button"
             className="hidden min-h-9 items-center rounded-full bg-foreground px-4 font-mono text-[10px] font-semibold tracking-[0.1em] text-background sm:inline-flex"
-            onClick={() => setSelectedId(firstAvailable?.id ?? 1)}
+            onClick={() => openClaim(firstAvailable?.id ?? 1)}
           >
             {dict.nav.claim}
           </button>

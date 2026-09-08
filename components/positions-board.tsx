@@ -5,6 +5,7 @@ import { useInventory } from "./inventory-provider";
 import { SuitcasePhotoStage } from "./suitcase-photo-stage";
 import { padSpot, TRIP } from "@/lib/positions";
 import { useCurrency } from "./currency-provider";
+import { AnimatedLetters } from "./animated-letters";
 
 export function PositionsBoard() {
   const { dict, locale } = useLanguage();
@@ -19,8 +20,8 @@ export function PositionsBoard() {
         <div className="mb-6">
           <p className="anim-fade-up mono-label text-primary">{dict.dims.badge}</p>
           <div className="mt-2 flex flex-col justify-between gap-3 md:flex-row md:items-end">
-            <h2 className="anim-headline text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]" style={{ animationDelay: "80ms" }}>
-              {dict.pick.title}
+            <h2 className="text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+              <AnimatedLetters text={dict.pick.title} />
             </h2>
             <div className="md:text-right">
               <div className="flex items-center gap-2 md:justify-end">
