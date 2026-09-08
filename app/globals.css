@@ -152,3 +152,159 @@
     width: min(1120px, calc(100% - 48px));
   }
 }
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes accent-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes label-in {
+  from {
+    opacity: 0;
+    filter: blur(5px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.anim-fade-up {
+  animation: fade-up 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-accent {
+  display: inline-block;
+  animation: accent-in 900ms 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.spot-hotspot {
+  transform-origin: center;
+  isolation: isolate;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(10px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 247, 244, 0.9) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 10px 24px rgba(17, 17, 17, 0.16),
+    0 1px 0 rgba(255, 255, 255, 0.95) inset;
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 240ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease;
+}
+
+.spot-hotspot.is-sold {
+  background: linear-gradient(180deg, #f3fff8 0%, #e8f8ef 100%);
+  border-color: rgba(20, 122, 75, 0.45);
+}
+
+.spot-hotspot.is-held {
+  background: linear-gradient(180deg, #fffdf4 0%, #fff8e4 100%);
+  border-color: rgba(196, 162, 74, 0.7);
+}
+
+.spot-hotspot.is-active {
+  border-color: color-mix(in oklab, var(--primary) 70%, white);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--primary) 22%, transparent),
+    0 14px 28px rgba(17, 17, 17, 0.18);
+}
+
+.spot-hotspot .spot-id,
+.spot-hotspot .spot-price {
+  display: block;
+  animation: label-in 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  transition:
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    letter-spacing 240ms ease,
+    color 220ms ease;
+}
+
+.spot-hotspot .spot-price {
+  animation-delay: 90ms;
+}
+
+@media (hover: hover) {
+  .spot-hotspot:hover {
+    z-index: 30;
+    transform: translateY(-3px) scale(1.09);
+    border-color: color-mix(in oklab, var(--primary) 45%, white);
+    box-shadow:
+      0 18px 34px rgba(17, 17, 17, 0.22),
+      0 1px 0 rgba(255, 255, 255, 1) inset;
+  }
+  .spot-hotspot:hover .spot-id {
+    transform: translateY(-3px) scale(1.08);
+    letter-spacing: 0.08em;
+  }
+  .spot-hotspot:hover .spot-price {
+    transform: translateY(2px) scale(1.08);
+  }
+}
+
+.spot-hotspot:active,
+.spot-hotspot:focus-visible {
+  transform: translateY(-1px) scale(1.05);
+}
+
+.spot-hotspot:focus-visible {
+  z-index: 30;
+  outline: none;
+  border-color: color-mix(in oklab, var(--primary) 45%, white);
+}
+
+.spot-grid-btn {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease,
+    border-color 220ms ease;
+}
+
+@media (hover: hover) {
+  .spot-grid-btn:hover {
+    transform: translateY(-3px) scale(1.03);
+    box-shadow: 0 12px 26px rgba(17, 17, 17, 0.1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up,
+  .anim-accent,
+  .spot-hotspot .spot-id,
+  .spot-hotspot .spot-price {
+    animation: none;
+  }
+  .spot-hotspot,
+  .spot-hotspot .spot-id,
+  .spot-hotspot .spot-price,
+  .spot-grid-btn {
+    transition: none;
+  }
+  .spot-hotspot:hover,
+  .spot-hotspot:active,
+  .spot-grid-btn:hover {
+    transform: none;
+  }
+}

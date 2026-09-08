@@ -3,6 +3,7 @@ import { Header } from "@/components/header";
 import { Hero } from "@/components/hero";
 import { InventoryProvider } from "@/components/inventory-provider";
 import { LanguageProvider } from "@/components/language-provider";
+import { CurrencyProvider } from "@/components/currency-provider";
 import { OfferForm } from "@/components/offer-form";
 import { PositionsBoard } from "@/components/positions-board";
 import { StickyCta } from "@/components/sticky-cta";
@@ -24,9 +25,10 @@ export default async function Home() {
 
   return (
     <LanguageProvider>
-      <InventoryProvider initial={inventory}>
+      <CurrencyProvider>
+        <InventoryProvider initial={inventory}>
         <Header />
-        <main id="main">
+        <main id="main" className="pb-24 md:pb-0">
           <Hero />
           <PositionsBoard />
           <OfferForm />
@@ -41,6 +43,7 @@ export default async function Home() {
         <StickyCta />
         <ClaimSheet />
       </InventoryProvider>
+      </CurrencyProvider>
     </LanguageProvider>
   );
 }

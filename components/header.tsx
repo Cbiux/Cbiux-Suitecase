@@ -4,6 +4,7 @@ import { SITE } from "@/lib/config";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { ThemeToggle } from "./theme-toggle";
+import { CurrencyToggle } from "./currency-toggle";
 
 export function Header() {
   const { locale, setLocale, dict } = useLanguage();
@@ -36,8 +37,9 @@ export function Header() {
             {dict.nav.trip}
           </a>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <ThemeToggle toDark={dict.theme.toDark} toLight={dict.theme.toLight} />
+          <CurrencyToggle />
           <div className="flex overflow-hidden rounded-full border border-border bg-card">
             {(["es", "en"] as const).map((code) => (
               <button

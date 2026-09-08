@@ -3,38 +3,45 @@
 import { TRIP } from "@/lib/positions";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
+import { useCurrency } from "./currency-provider";
 
 export function Hero() {
   const { dict } = useLanguage();
+  const { format } = useCurrency();
   const { data, setSelectedId } = useInventory();
   const first = data?.positions.find((p) => p.status === "available");
   const chips = [
     { label: dict.hero.spots, value: String(TRIP.spotCount) },
-    { label: dict.hero.from, value: "$45" },
+    { label: dict.hero.from, value: format(TRIP.startPrice) },
     { label: "CABIN", value: "55×40×20" },
     { label: dict.hero.available, value: String(data?.available ?? TRIP.spotCount) },
   ];
 
   return (
     <section className="shell pb-8 pt-8 text-left md:pb-12 md:pt-14 md:text-center">
-      <p className="mono-label text-primary">{dict.hero.kicker}</p>
-      <h1 className="mt-3 max-w-[14ch] text-[clamp(40px,11vw,76px)] font-semibold leading-[0.92] tracking-[-0.055em] text-foreground md:mx-auto md:max-w-[16ch]">
+      <p className="anim-fade-up mono-label text-primary">{dict.hero.kicker}</p>
+      <h1 className="anim-fade-up mt-3 max-w-[14ch] text-[clamp(40px,11vw,76px)] font-semibold leading-[0.92] tracking-[-0.055em] text-foreground md:mx-auto md:max-w-[16ch]" style={{ animationDelay: "80ms" }}>
         {dict.hero.titleA} {dict.hero.titleB}{" "}
-        <span className="text-primary">{dict.hero.titleAccent}</span>
+        <span className="anim-accent text-primary">{dict.hero.titleAccent}</span>
       </h1>
-      <p className="mt-4 max-w-[36ch] text-[16px] leading-relaxed text-muted-foreground md:mx-auto md:max-w-[640px] md:text-[18px]">
+      <p className="anim-fade-up mt-4 max-w-[36ch] text-[16px] leading-relaxed text-muted-foreground md:mx-auto md:max-w-[640px] md:text-[18px]" style={{ animationDelay: "160ms" }}>
         {dict.hero.subtitle}
       </p>
       <div className="mt-6 flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:justify-center md:overflow-visible">
-        {chips.map((chip) => (
+        {chips.map((chip, index) => (
           <div
             key={chip.label}
             className="shrink-0 rounded-full border border-border bg-card px-3 py-2"
           >
-            <p className="font-mono text-[9px] font-semibold tracking-[0.12em] text-muted-foreground uppercase">
+            <p
+              className="anim-fade-up font-mono text-[9px] font-semibold tracking-[0.12em] text-muted-foreground uppercase"
+              style={{ animationDelay: `${120 + index * 70}ms` }}
+            >
               {chip.label}
             </p>
-            <p className="font-medium tracking-tight">{chip.value}</p>
+            <p className="anim-accent font-medium tracking-tight" style={{ animationDelay: `${220 + index * 70}ms` }}>
+              {chip.value}
+            </p>
           </div>
         ))}
       </div>

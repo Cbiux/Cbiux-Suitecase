@@ -19,6 +19,14 @@ export const copy = {
       toDark: "Noche",
       toLight: "Día",
     },
+    currency: {
+      label: "Moneda",
+      usd: "USD",
+      crc: "CRC",
+      usdName: "Dólares",
+      crcName: "Colones",
+      rateNote: "Referencia ₡453 por USD. SINPE en colones; USDC en dólares.",
+    },
     hero: {
       kicker: "MALETA DE CABINA · 55×40×20 CM · 2026",
       titleA: "Poné tu marca",
@@ -36,7 +44,7 @@ export const copy = {
       usdc: "SINPE MÓVIL · USDC EVM · USDC STELLAR",
       dates: "SEP 20 → NOV 2026",
       url: "cbiux-suitcase",
-      signal: "Cabina 55×40×20 · 22 spots · vlog diario · from $45",
+      signal: "Cabina 55×40×20 · 22 spots · vlog diario",
     },
     faces: {
       front: "FRENTE",
@@ -581,6 +589,14 @@ export const copy = {
       toDark: "Night",
       toLight: "Day",
     },
+    currency: {
+      label: "Currency",
+      usd: "USD",
+      crc: "CRC",
+      usdName: "Dollars",
+      crcName: "Colones",
+      rateNote: "Reference ₡453 per USD. SINPE in colones; USDC in dollars.",
+    },
     hero: {
       kicker: "CARRY-ON CABIN · 55×40×20 CM · 2026",
       titleA: "Put your brand",
@@ -597,7 +613,7 @@ export const copy = {
       usdc: "SINPE MÓVIL · USDC EVM · USDC STELLAR",
       dates: "SEP 20 → NOV 2026",
       url: "cbiux-suitcase",
-      signal: "Carry-on 55×40×20 · 22 spots · daily vlog · from $45",
+      signal: "Carry-on 55×40×20 · 22 spots · daily vlog",
     },
     faces: {
       front: "FRONT",

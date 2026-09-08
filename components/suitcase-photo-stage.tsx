@@ -5,6 +5,7 @@ import { FACE_ORDER, padSpot } from "@/lib/positions";
 import type { Face, LivePosition } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
 import { useLanguage } from "./language-provider";
+import { useCurrency } from "./currency-provider";
 
 const PHOTOS: Record<
   Face,
@@ -76,8 +77,8 @@ export function SuitcasePhotoStage() {
 
   return (
     <div id="suitcase-orbit" className="relative">
-      <div className="mb-3 flex items-center justify-between px-1">
-        <p className="mono-label">
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <p key={approachPhase} className="anim-fade-up mono-label">
           {approachPhase === "approaching" ? dict.orbit.approaching : dict.orbit.hint}
         </p>
         {selectedId != null ? (
@@ -97,10 +98,10 @@ export function SuitcasePhotoStage() {
             key={face}
             type="button"
             onClick={() => setActiveFace(face)}
-            className={`min-h-10 rounded-full font-mono text-[10px] font-semibold tracking-[0.1em] ${
+            className={`min-h-11 rounded-full px-1 font-mono text-[9px] font-semibold tracking-[0.08em] transition-all duration-200 sm:text-[10px] sm:tracking-[0.1em] ${
               activeFace === face && selectedId == null
-                ? "bg-foreground text-background"
-                : "text-muted-foreground"
+                ? "bg-foreground text-background shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             {dict.faces[face]}
@@ -119,10 +120,10 @@ export function SuitcasePhotoStage() {
           touchX.current = null;
         }}
       >
-        <SuitcaseView face={activeFace} focus />
+        <SuitcaseView key={activeFace} face={activeFace} focus />
       </div>
 
-      <div className="mt-4 hidden gap-3 lg:grid lg:grid-cols-4">
+      <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-2 xl:grid-cols-4">
         {FACE_ORDER.map((face) => (
           <SuitcaseView key={face} face={face} focus={activeFace === face} />
         ))}
@@ -147,10 +148,10 @@ function SuitcaseView({ face, focus }: { face: Face; focus: boolean }) {
 
   return (
     <figure>
-      <div className="relative mx-auto w-full max-w-[420px] pb-8 pr-7">
+      <div className="relative mx-auto w-full max-w-[520px] pb-8 pr-7 lg:max-w-none">
         <div
-          className={`overflow-hidden rounded-2xl border bg-black ${
-            focus ? "border-primary/50 ring-2 ring-primary/20" : "border-border"
+          className={`overflow-visible rounded-2xl border bg-muted/50 dark:bg-muted ${
+            focus ? "border-primary/40 ring-2 ring-primary/15" : "border-border"
           }`}
           onClick={() => setActiveFace(face)}
         >
@@ -174,7 +175,7 @@ function SuitcaseView({ face, focus }: { face: Face; focus: boolean }) {
                   alt={photo.alt}
                   width={side ? 768 : 1168}
                   height={side ? 1024 : 1346}
-                  className="pointer-events-none absolute inset-0 h-full w-full object-contain"
+                  className="pointer-events-none absolute inset-0 h-full w-full object-contain drop-shadow-[0_18px_30px_rgba(17,17,17,0.18)] dark:drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)]"
                   style={{ transform: photo.mirror ? "scaleX(-1)" : undefined }}
                 />
                 {spots.map((spot) => (
@@ -226,12 +227,13 @@ function SpotOverlay({
   active: boolean;
   onSelect: () => void;
 }) {
+  const { format, currency } = useCurrency();
   const sold = spot.status === "sold";
   const held = spot.status === "reserved";
   const side = spot.face === "left" || spot.face === "right";
   const banner = spot.width >= 40;
   const left = mirror ? 100 - spot.x - spot.width : spot.x;
-  const price = sold ? "SOLD" : held ? "HELD" : `$${spot.price}`;
+  const price = sold ? "SOLD" : held ? "HELD" : format(spot.price);
 
   return (
     <button
@@ -240,16 +242,12 @@ function SpotOverlay({
         event.stopPropagation();
         onSelect();
       }}
-      aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, $${spot.price}, ${spot.status}`}
-      className={`absolute z-10 box-border flex flex-col items-center justify-center border-2 border-dashed px-0.5 backdrop-blur-[1px] transition ${
+      aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, ${format(spot.price)}, ${spot.status}`}
+      className={`spot-hotspot absolute z-10 box-border flex flex-col items-center justify-center gap-0.5 px-1 ${
         spot.logo ? "overflow-hidden" : "overflow-visible"
-      } ${side ? "rounded-full" : "rounded-md"} ${
-        sold
-          ? "border-[#147a4b] bg-[#d8f5e6]/92"
-          : held
-            ? "border-[#c4a24a] bg-[#fff6d8]/92"
-            : "border-[#4d63f0] bg-white/82 hover:bg-white"
-      } ${active ? "border-solid border-primary ring-2 ring-primary/30" : ""}`}
+      } ${side ? "rounded-2xl" : "rounded-xl"} ${sold ? "is-sold" : held ? "is-held" : ""} ${
+        active ? "is-active" : ""
+      }`}
       style={{
         left: `${left}%`,
         top: `${spot.y}%`,
@@ -263,16 +261,30 @@ function SpotOverlay({
       ) : (
         <>
           <strong
-            className={`block font-mono font-bold leading-none ${
-              side ? "text-[8px]" : banner ? "text-[11px] md:text-[12px]" : "text-[10px]"
+            className={`spot-id font-mono font-bold leading-none ${
+              side ? "text-[11px] sm:text-[12px]" : banner ? "text-[13px] md:text-[15px]" : "text-[12px] md:text-[13px]"
             } ${sold ? "text-[#147a4b]" : "text-[#111]"}`}
+            style={{ animationDelay: `${40 + (spot.id % 6) * 45}ms` }}
           >
             {padSpot(spot.id)}
           </strong>
           <span
-            className={`mt-px block font-mono font-semibold leading-none ${
+            className={`spot-price font-mono font-semibold leading-none ${
               sold ? "text-[#147a4b]" : held ? "text-[#8a6a12]" : "text-[#3d3d3d]"
-            } ${side ? "text-[7px]" : banner ? "text-[9px]" : "text-[8px]"}`}
+            } ${
+              currency === "crc"
+                ? side
+                  ? "text-[8px]"
+                  : banner
+                    ? "text-[9px] md:text-[10px]"
+                    : "text-[8px] md:text-[10px]"
+                : side
+                  ? "text-[9px]"
+                  : banner
+                    ? "text-[10px] md:text-[11px]"
+                    : "text-[10px]"
+            }`}
+            style={{ animationDelay: `${90 + (spot.id % 6) * 45}ms` }}
           >
             {price}
           </span>

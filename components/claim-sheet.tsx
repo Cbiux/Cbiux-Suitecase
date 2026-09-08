@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { compressReceipt } from "@/lib/compress-receipt";
 import { SITE } from "@/lib/config";
 import { padSpot } from "@/lib/positions";
+import { formatMoney } from "@/lib/currency";
 import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
+import { useCurrency } from "./currency-provider";
 
 type Step = "detail" | "pay" | "success";
 
@@ -40,6 +42,7 @@ export function ClaimSheet() {
 
 function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boolean }) {
   const { dict, locale } = useLanguage();
+  const { format, currency } = useCurrency();
   const { refresh, data } = useInventory();
   const [step, setStep] = useState<Step>("detail");
   const [brandName, setBrandName] = useState("");
@@ -70,9 +73,9 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const shareText = useMemo(() => {
     const n = padSpot(selected.id);
     return locale === "es"
-      ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 22 spots · desde $45 · USDC`
-      : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 22 spots · from $45 · USDC`;
-  }, [selected, brandName, locale]);
+      ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 22 spots · desde ${formatMoney(45, currency)} · USDC`
+      : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 22 spots · from ${formatMoney(45, currency)} · USDC`;
+  }, [selected, brandName, locale, currency]);
 
   async function makeQr(nextNetwork: PaymentNetwork, nextWallets: PaymentWallets) {
     const value =
@@ -262,8 +265,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
         <div className="px-6 pb-10">
         <p className="mt-1 text-sm text-muted-foreground">{selected.name}</p>
         <div className="mt-3 text-5xl font-semibold tracking-tight text-primary">
-          ${selected.price}
+          {format(selected.price)}
         </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {currency === "crc" ? `≈ $${selected.price} USD` : `≈ ${formatMoney(selected.price, "crc")}`}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">{dict.currency.rateNote}</p>
         <p className="mt-2 text-sm text-muted-foreground">
           {dict.claim.approx} {selected.size}
         </p>
@@ -356,7 +363,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
                   : network === "stellar"
                     ? "USDC · STELLAR"
                     : "USDC · EVM / BASE"}{" "}
-                · ${selected.price}
+                · {network === "sinpe" ? format(selected.price) : `$${selected.price}`}
               </p>
               <p className="mt-2 break-all font-mono text-[13px]">{address}</p>
               <button
@@ -435,7 +442,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
             <p className="mono-label text-[#147a4b]">{dict.claim.successKicker}</p>
             <h3 className="text-3xl font-semibold tracking-tight">{dict.claim.successTitle}</h3>
             <p className="text-sm text-muted-foreground">
-              {brandName} · {selected.name} · ${selected.price}
+              {brandName} · {selected.name} · {format(selected.price)}
             </p>
             <p className="break-all font-mono text-[11px] text-muted-foreground">{txHash}</p>
             <form className="space-y-3" onSubmit={publish}>

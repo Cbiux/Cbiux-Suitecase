@@ -2,9 +2,12 @@
 
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
+import { useCurrency } from "./currency-provider";
+import { TRIP } from "@/lib/positions";
 
 export function StickyCta() {
   const { dict } = useLanguage();
+  const { format } = useCurrency();
   const { data, setSelectedId, claimOpen } = useInventory();
   const first = data?.positions.find((p) => p.status === "available");
   const available = data?.available ?? 0;
@@ -18,7 +21,9 @@ export function StickyCta() {
           <p className="mono-label">
             {available} {dict.pick.spotsAvailable}
           </p>
-          <p className="truncate text-sm font-medium">{dict.hero.signal}</p>
+          <p className="truncate text-sm font-medium">
+            {dict.hero.signal} · {format(TRIP.startPrice)}
+          </p>
         </div>
         <button
           type="button"
