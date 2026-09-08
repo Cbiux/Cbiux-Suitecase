@@ -458,13 +458,51 @@ h2.anim-headline {
 }
 
 .spot-hotspot.is-sold {
-  background: linear-gradient(180deg, #f3fff8 0%, #e8f8ef 100%);
-  border-color: rgba(20, 122, 75, 0.45);
+  background: linear-gradient(180deg, #d8f8e6 0%, #b6efcf 100%);
+  border-color: #147a4b;
+  box-shadow: inset 0 0 0 1px rgba(20, 122, 75, 0.35);
 }
 
 .spot-hotspot.is-held {
-  background: linear-gradient(180deg, #fffdf4 0%, #fff8e4 100%);
-  border-color: rgba(196, 162, 74, 0.7);
+  background: linear-gradient(180deg, #ffe566 0%, #ffd54a 100%);
+  border-color: #e6b800;
+  box-shadow: inset 0 0 0 1px rgba(180, 130, 0, 0.45);
+}
+
+.dark .spot-hotspot.is-sold {
+  background: linear-gradient(180deg, #1a4d32 0%, #143024 100%);
+  border-color: #3dd68c;
+}
+
+.dark .spot-hotspot.is-held {
+  background: linear-gradient(180deg, #6b5420 0%, #4a3a10 100%);
+  border-color: #ffd54a;
+}
+
+.spot-status-chip {
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  right: 3px;
+  z-index: 2;
+  border-radius: 999px;
+  padding: 1px 4px;
+  font-family: var(--font-jetbrains), ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.spot-hotspot.is-held .spot-status-chip {
+  background: #111;
+  color: #ffd54a;
+}
+
+.spot-hotspot.is-sold .spot-status-chip {
+  background: #147a4b;
+  color: #f3fff8;
 }
 
 .spot-hotspot.is-active {

@@ -688,7 +688,7 @@ export const copy = {
       spotsAvailable: "spots available",
       soldOut: "0 spots",
       claim: "CLAIM",
-      held: "HELD",
+      held: "RESERVED",
       sold: "SOLD",
     },
     orbit: {

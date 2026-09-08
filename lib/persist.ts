@@ -55,24 +55,21 @@ async function ensureNeonTable() {
   await neonReady;
 }
 
+function asPayload(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  return JSON.stringify(value);
+}
+
 export async function loadStoreRaw(): Promise<string | null> {
-  // Prefer Neon (durable Postgres). Fall back to Redis, then local/tmp file.
   if (neonConfigured()) {
-    try {
-      await ensureNeonTable();
-      const sql = await neonSql();
-      if (sql) {
-        const rows = await sql`
-          SELECT payload FROM store_blob WHERE id = ${NEON_KEY} LIMIT 1
-        `;
-        const payload = rows[0]?.payload;
-        if (typeof payload === "string") return payload;
-        return null;
-      }
-    } catch (error) {
-      console.error("[persist] Neon load failed:", error);
-      // Fall through to Redis/file so local/dev still works if Neon is misconfigured.
-    }
+    await ensureNeonTable();
+    const sql = await neonSql();
+    if (!sql) throw new Error("NEON_UNAVAILABLE");
+    const rows = await sql`
+      SELECT payload FROM store_blob WHERE id = ${NEON_KEY} LIMIT 1
+    `;
+    return asPayload(rows[0]?.payload);
   }
 
   const redis = await redisClient();
@@ -81,6 +78,7 @@ export async function loadStoreRaw(): Promise<string | null> {
     if (value == null) return null;
     return typeof value === "string" ? value : JSON.stringify(value);
   }
+
   try {
     return await fs.readFile(/*turbopackIgnore: true*/ filePath(), "utf8");
   } catch {
@@ -90,23 +88,17 @@ export async function loadStoreRaw(): Promise<string | null> {
 
 export async function saveStoreRaw(json: string) {
   if (neonConfigured()) {
-    try {
-      await ensureNeonTable();
-      const sql = await neonSql();
-      if (sql) {
-        await sql`
-          INSERT INTO store_blob (id, payload, updated_at)
-          VALUES (${NEON_KEY}, ${json}, now())
-          ON CONFLICT (id) DO UPDATE
-          SET payload = EXCLUDED.payload,
-              updated_at = now()
-        `;
-        return;
-      }
-    } catch (error) {
-      console.error("[persist] Neon save failed:", error);
-      throw error;
-    }
+    await ensureNeonTable();
+    const sql = await neonSql();
+    if (!sql) throw new Error("NEON_UNAVAILABLE");
+    await sql`
+      INSERT INTO store_blob (id, payload, updated_at)
+      VALUES (${NEON_KEY}, ${json}, now())
+      ON CONFLICT (id) DO UPDATE
+      SET payload = EXCLUDED.payload,
+          updated_at = now()
+    `;
+    return;
   }
 
   const redis = await redisClient();
@@ -114,6 +106,7 @@ export async function saveStoreRaw(json: string) {
     await redis.set(REDIS_KEY, json);
     return;
   }
+
   const file = filePath();
   await fs.mkdir(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true });
   await fs.writeFile(/*turbopackIgnore: true*/ file, json);

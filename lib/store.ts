@@ -1,7 +1,7 @@
 import { randomBytes, timingSafeEqual } from "crypto";
 import { POSITION_CATALOG } from "./positions";
 import { t } from "./i18n";
-import { getWallets, RESERVATION_MINUTES, SINPE_HOLD_HOURS } from "./config";
+import { getWallets, SINPE_HOLD_HOURS } from "./config";
 import { parseComprobanteDataUrl } from "./comprobante";
 import { parseArtworkDataUrl } from "./artwork";
 import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
@@ -24,6 +24,7 @@ const emptyState = (): PositionState => ({
   sponsor: "",
   email: "",
   logo: "",
+  reservedAt: "",
   reservedUntil: "",
   recoveryToken: "",
   txHash: "",
@@ -87,13 +88,18 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
 
 function expireReservations(store: StoreShape) {
   const now = Date.now();
+  let changed = false;
   for (const state of Object.values(store.positions)) {
     if (state.status !== "reserved") continue;
+    // Pedidos reales (marca, diseño o comprobante) se quedan hasta /admin.
+    if (state.sponsor || state.logo || state.comprobante) continue;
     const until = state.reservedUntil ? Date.parse(state.reservedUntil) : 0;
-    if (!until || until <= now) {
+    if (until && until <= now) {
       Object.assign(state, emptyState());
+      changed = true;
     }
   }
+  return changed;
 }
 
 function token() {
@@ -126,8 +132,7 @@ export function hydratePositions(
 export async function getInventory(locale: Locale = "es"): Promise<InventoryResponse> {
   return withLock(async () => {
     const store = await readStore();
-    expireReservations(store);
-    await persist(store);
+    if (expireReservations(store)) await persist(store);
     const positions = hydratePositions(store, locale);
     const sold = positions.filter((p) => p.status === "sold");
     const reserved = positions.filter((p) => p.status === "reserved").length;
@@ -164,10 +169,12 @@ export async function startCheckout(input: {
       positionId: catalog.id,
       brand: input.brandName,
       email: input.email ?? "",
+      hours: SINPE_HOLD_HOURS,
     });
     const checkoutToken = token();
+    const reservedAt = new Date().toISOString();
     const reservedUntil = new Date(
-      Date.now() + RESERVATION_MINUTES * 60_000,
+      Date.now() + SINPE_HOLD_HOURS * 60 * 60_000,
     ).toISOString();
     const logo = input.logo ? parseArtworkDataUrl(input.logo) : "";
 
@@ -177,6 +184,7 @@ export async function startCheckout(input: {
       sponsor: input.brandName.trim(),
       email: input.email?.trim() ?? "",
       logo,
+      reservedAt,
       reservedUntil,
       recoveryToken,
       checkoutToken,
@@ -310,8 +318,7 @@ export async function publishLogo(input: {
 export async function adminList() {
   return withLock(async () => {
     const store = await readStore();
-    expireReservations(store);
-    await persist(store);
+    if (expireReservations(store)) await persist(store);
     return {
       positions: hydratePositions(store, "es", { includePrivate: true }),
       payments: store.payments,
@@ -337,14 +344,29 @@ export async function adminUpdateSpot(input: {
     if (input.release) {
       store.positions[String(catalog.id)] = emptyState();
     } else {
+      const nextStatus = input.status ?? current.status;
+      if (nextStatus === "sold" && current.status !== "sold") {
+        store.payments.push({
+          id: token(),
+          positionId: catalog.id,
+          brandName: (input.sponsor ?? current.sponsor) || "admin",
+          email: current.email,
+          amount: catalog.price,
+          network: current.network || "sinpe",
+          txHash: current.txHash || "admin-accept",
+          verifiedAt: new Date().toISOString(),
+          mode: "manual",
+        });
+      }
       store.positions[String(catalog.id)] = {
         ...current,
-        status: input.status ?? current.status,
+        status: nextStatus,
         sponsor: input.sponsor ?? current.sponsor,
         logo: input.logo ?? current.logo,
-        reservedUntil: input.status === "available" ? "" : current.reservedUntil,
+        reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
+        reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:
-          input.status === "sold" && !current.recoveryToken
+          nextStatus === "sold" && !current.recoveryToken
             ? token()
             : current.recoveryToken,
       };
@@ -424,6 +446,7 @@ function restoreReservation(
     status: "reserved",
     sponsor: grant.brand,
     email: grant.email,
+    reservedAt: state.reservedAt || new Date().toISOString(),
     reservedUntil: new Date(grant.exp).toISOString(),
     recoveryToken,
     checkoutToken: state.checkoutToken || token(),

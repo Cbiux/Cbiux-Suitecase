@@ -59,9 +59,9 @@ export function PositionsBoard() {
               onClick={() => setSelectedId(spot.id)}
               className={`spot-grid-btn min-h-16 rounded-2xl border px-3 py-3 text-left ${
                 spot.status === "sold"
-                  ? "border-[#b7e4cc] bg-[#e8f8ef] dark:border-[#1f5c3a] dark:bg-[#143024]"
+                  ? "border-[#147a4b] bg-[#b6efcf] dark:border-[#3dd68c] dark:bg-[#143024]"
                   : spot.status === "reserved"
-                    ? "border-[#ead7a0] bg-[#fff8e4] dark:border-[#6b5420] dark:bg-[#2a2310]"
+                    ? "border-[#e6b800] bg-[#ffd54a] dark:border-[#ffd54a] dark:bg-[#4a3a10]"
                     : "border-border bg-card"
               }`}
             >

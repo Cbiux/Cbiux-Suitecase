@@ -23,6 +23,7 @@ export type PositionState = {
   sponsor: string;
   email: string;
   logo: string;
+  reservedAt: string;
   reservedUntil: string;
   recoveryToken: string;
   txHash: string;

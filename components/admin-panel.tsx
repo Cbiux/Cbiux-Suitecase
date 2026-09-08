@@ -148,24 +148,30 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
         ) : (
           <div className="mt-4 space-y-3">
             {pendingSpots.map((spot) => (
-              <article key={spot.id} className="rounded-2xl border border-border bg-card p-5">
+              <article key={spot.id} className="rounded-2xl border border-[#e6b800] bg-[#fff8e4] p-5 dark:border-[#ffd54a] dark:bg-[#4a3a10]">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="mono-label text-primary">posición {padSpot(spot.id)}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="mono-label text-[#6b4f00]">posición {padSpot(spot.id)}</p>
+                      <StatusPill status="reserved" />
+                    </div>
                     <h3 className="mt-1 text-lg font-medium">{spot.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {spot.sponsor || "Sin marca"} · ${spot.price}
                       {spot.network ? ` · ${spot.network.toUpperCase()}` : ""}
                     </p>
                     {spot.email ? <p className="mt-1 text-sm text-muted-foreground">{spot.email}</p> : null}
+                    <p className="mt-2 font-mono text-[11px] text-[#6b4f00]">
+                      {spot.reservedAt ? `Reservó ${formatWhen(spot.reservedAt)}` : "Reserva pendiente de confirmar"}
+                    </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="rounded-full bg-foreground px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] text-background"
+                      className="rounded-full bg-[#147a4b] px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] text-white"
                       onClick={() => updateSpot(spot.id, { status: "sold", sponsor: spot.sponsor })}
                     >
-                      Aceptar
+                      Confirmar
                     </button>
                     <button
                       type="button"
@@ -176,23 +182,33 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                     </button>
                   </div>
                 </div>
-                {spot.comprobante ? (
-                  <a href={spot.comprobante} target="_blank" rel="noreferrer" className="mt-4 block w-fit">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                <div className="mt-4 flex flex-wrap gap-4">
+                  {spot.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={spot.comprobante}
-                      alt={`Comprobante ${padSpot(spot.id)}`}
-                      className="h-28 w-28 rounded-xl border border-border object-cover"
+                      src={spot.logo}
+                      alt={`Diseño ${padSpot(spot.id)}`}
+                      className="h-20 w-20 rounded-xl border border-border bg-white object-contain p-1"
                     />
-                    <span className="mt-1 block font-mono text-[9px] tracking-[0.08em] text-primary">
-                      ABRIR COMPROBANTE
-                    </span>
-                  </a>
-                ) : (
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    {spot.network === "sinpe" ? "SINPE sin captura todavía." : "Esperando pago o comprobante."}
-                  </p>
-                )}
+                  ) : null}
+                  {spot.comprobante ? (
+                    <a href={spot.comprobante} target="_blank" rel="noreferrer" className="block w-fit">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={spot.comprobante}
+                        alt={`Comprobante ${padSpot(spot.id)}`}
+                        className="h-28 w-28 rounded-xl border border-border object-cover"
+                      />
+                      <span className="mt-1 block font-mono text-[9px] tracking-[0.08em] text-primary">
+                        ABRIR COMPROBANTE
+                      </span>
+                    </a>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {spot.network === "sinpe" ? "SINPE sin captura todavía." : "Esperando pago o comprobante."}
+                    </p>
+                  )}
+                </div>
               </article>
             ))}
             {pendingOffers.map((offer) => (
@@ -284,13 +300,38 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
             data.payments.map((payment) => (
               <p key={payment.id} className="border-b border-border p-4 font-mono text-xs last:border-0">
                 #{padSpot(payment.positionId)} · {payment.brandName} · ${payment.amount} · {payment.network} ·{" "}
-                {payment.txHash}
+                {formatWhen(payment.verifiedAt)} · {payment.txHash}
               </p>
             ))
           )}
         </div>
       </section>
     </main>
+  );
+}
+
+function formatWhen(value: string) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("es-CR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function StatusPill({ status }: { status: "available" | "reserved" | "sold" }) {
+  const label = status === "sold" ? "Confirmado" : status === "reserved" ? "Reservado" : "Libre";
+  const className =
+    status === "sold"
+      ? "bg-[#b6efcf] text-[#147a4b] border-[#147a4b]"
+      : status === "reserved"
+        ? "bg-[#ffd54a] text-[#6b4f00] border-[#e6b800]"
+        : "border-border text-muted-foreground";
+  return (
+    <span className={`inline-flex rounded-full border px-2 py-0.5 font-mono text-[10px] font-semibold tracking-[0.08em] ${className}`}>
+      {label}
+    </span>
   );
 }
 
@@ -320,15 +361,18 @@ function AdminRow({
       <td className="p-3">{spot.name}</td>
       <td className="p-3">${spot.price}</td>
       <td className="p-3">
-        <select
-          className="rounded-lg border border-border bg-card px-2 py-1"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as SpotStatus)}
-        >
-          <option value="available">available</option>
-          <option value="reserved">reserved</option>
-          <option value="sold">sold</option>
-        </select>
+        <div className="flex flex-col gap-2">
+          <StatusPill status={spot.status} />
+          <select
+            className="rounded-lg border border-border bg-card px-2 py-1"
+            value={status}
+            onChange={(e) => setStatus(e.target.value as SpotStatus)}
+          >
+            <option value="available">libre</option>
+            <option value="reserved">reservado</option>
+            <option value="sold">confirmado</option>
+          </select>
+        </div>
       </td>
       <td className="p-3">
         <input

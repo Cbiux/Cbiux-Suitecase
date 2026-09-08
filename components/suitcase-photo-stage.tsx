@@ -254,12 +254,13 @@ function SpotOverlay({
   onSelect: () => void;
 }) {
   const { format, currency } = useCurrency();
+  const { dict } = useLanguage();
   const sold = spot.status === "sold";
   const held = spot.status === "reserved";
   const side = spot.face === "left" || spot.face === "right";
   const banner = spot.width >= 40;
   const left = mirror ? 100 - spot.x - spot.width : spot.x;
-  const price = sold ? "SOLD" : held ? "HELD" : format(spot.price);
+  const price = sold ? dict.pick.sold : held ? dict.pick.held : format(spot.price);
 
   return (
     <button
@@ -284,20 +285,20 @@ function SpotOverlay({
     >
       {spot.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={spot.logo} alt="" className="max-h-[78%] max-w-[86%] object-contain" />
+        <img src={spot.logo} alt="" className="max-h-[70%] max-w-[86%] object-contain" />
       ) : (
         <>
           <strong
             className={`spot-id font-mono font-bold leading-none ${
               side ? "text-[11px] sm:text-[12px]" : banner ? "text-[13px] md:text-[15px]" : "text-[12px] md:text-[13px]"
-            } ${sold ? "text-[#147a4b]" : "text-[#111]"}`}
+            } ${sold ? "text-[#147a4b]" : held ? "text-[#6b4f00]" : "text-[#111]"}`}
             style={{ animationDelay: `${40 + (spot.id % 6) * 45}ms` }}
           >
             {padSpot(spot.id)}
           </strong>
           <span
             className={`spot-price font-mono font-semibold leading-none ${
-              sold ? "text-[#147a4b]" : held ? "text-[#8a6a12]" : "text-[#3d3d3d]"
+              sold ? "text-[#147a4b]" : held ? "text-[#6b4f00]" : "text-[#3d3d3d]"
             } ${
               currency === "crc"
                 ? side
@@ -317,6 +318,9 @@ function SpotOverlay({
           </span>
         </>
       )}
+      {sold || held ? (
+        <span className="spot-status-chip">{sold ? dict.pick.sold : dict.pick.held}</span>
+      ) : null}
     </button>
   );
 }
