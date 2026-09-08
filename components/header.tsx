@@ -5,6 +5,7 @@ import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { ThemeToggle } from "./theme-toggle";
 import { CurrencyToggle } from "./currency-toggle";
+import { BrandLogo } from "./brand-logo";
 
 export function Header() {
   const { locale, setLocale, dict } = useLanguage();
@@ -14,8 +15,13 @@ export function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-border/80 bg-background/90 backdrop-blur-md">
       <div className="shell flex h-14 items-center justify-between gap-3 md:h-16">
-        <a href="#main" className="font-mono text-[13px] font-black tracking-[0.16em] lowercase text-foreground">
-          {SITE.name}
+        <a href="#main" className="flex items-center gap-2 text-foreground">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <BrandLogo className="h-5 w-5" />
+          </span>
+          <span className="font-mono text-[13px] font-black tracking-[0.16em] lowercase">
+            {SITE.name}
+          </span>
         </a>
         <nav className="hidden items-center gap-5 md:flex" aria-label="Primary">
           <a className="mono-label hover:text-foreground" href="#positions">

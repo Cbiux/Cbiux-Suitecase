@@ -3,6 +3,7 @@ import { POSITION_CATALOG } from "./positions";
 import { t } from "./i18n";
 import { getWallets, RESERVATION_MINUTES, SINPE_HOLD_HOURS } from "./config";
 import { parseComprobanteDataUrl } from "./comprobante";
+import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
 import { loadStoreRaw, saveStoreRaw } from "./persist";
 import type {
   InventoryResponse,
@@ -158,7 +159,11 @@ export async function startCheckout(input: {
     if (state.status === "sold") throw new Error("SOLD");
     if (state.status === "reserved") throw new Error("RESERVED");
 
-    const recoveryToken = token();
+    const recoveryToken = issueCheckoutGrant({
+      positionId: catalog.id,
+      brand: input.brandName,
+      email: input.email ?? "",
+    });
     const checkoutToken = token();
     const reservedUntil = new Date(
       Date.now() + RESERVATION_MINUTES * 60_000,
@@ -201,18 +206,12 @@ export async function verifyPayment(input: {
     expireReservations(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
-    const state = store.positions[String(catalog.id)];
+    const state = restoreReservation(store, catalog.id, input.recoveryToken);
 
     if (state.status === "sold") {
-      if (safeEqual(state.recoveryToken, input.recoveryToken)) {
-        return { alreadySold: true, positionId: catalog.id };
-      }
-      throw new Error("SOLD");
+      return { alreadySold: true, positionId: catalog.id };
     }
     if (state.status !== "reserved") throw new Error("NOT_RESERVED");
-    if (!safeEqual(state.recoveryToken, input.recoveryToken)) {
-      throw new Error("BAD_TOKEN");
-    }
 
     const reused = store.payments.some(
       (payment) => payment.txHash.toLowerCase() === input.txHash.toLowerCase(),
@@ -256,12 +255,9 @@ export async function submitSinpe(input: {
     expireReservations(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
-    const state = store.positions[String(catalog.id)];
+    const state = restoreReservation(store, catalog.id, input.recoveryToken);
     if (state.status === "sold") throw new Error("SOLD");
     if (state.status !== "reserved") throw new Error("NOT_RESERVED");
-    if (!safeEqual(state.recoveryToken, input.recoveryToken)) {
-      throw new Error("BAD_TOKEN");
-    }
     if (!input.comprobante?.trim()) throw new Error("MISSING_COMPROBANTE");
     const receipt = parseComprobanteDataUrl(input.comprobante);
 
@@ -393,6 +389,41 @@ export async function adminUpdateOffer(input: { id: string; status: OfferStatus 
     await persist(store);
     return hydrateOffer(offer);
   });
+}
+
+function restoreReservation(
+  store: StoreShape,
+  positionId: number,
+  recoveryToken: string,
+): PositionState {
+  const state = store.positions[String(positionId)];
+  if (!state) throw new Error("UNKNOWN_POSITION");
+
+  if (state.status === "sold") {
+    if (safeEqual(state.recoveryToken, recoveryToken)) return state;
+    throw new Error("SOLD");
+  }
+
+  if (state.status === "reserved" && safeEqual(state.recoveryToken, recoveryToken)) {
+    return state;
+  }
+
+  const grant = readCheckoutGrant(recoveryToken);
+  if (!grant || grant.positionId !== positionId) {
+    throw new Error(state.status === "reserved" ? "RESERVED" : "BAD_TOKEN");
+  }
+  if (state.status === "reserved") throw new Error("RESERVED");
+
+  store.positions[String(positionId)] = {
+    ...state,
+    status: "reserved",
+    sponsor: grant.brand,
+    email: grant.email,
+    reservedUntil: new Date(grant.exp).toISOString(),
+    recoveryToken,
+    checkoutToken: state.checkoutToken || token(),
+  };
+  return store.positions[String(positionId)];
 }
 
 function safeEqual(left: string, right: string) {

@@ -81,7 +81,7 @@ export function OfferForm() {
   return (
     <section id="offer" className="shell py-16 md:py-24">
       <p className="mono-label text-primary">{dict.offer.kicker}</p>
-      <h2 className="mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+      <h2 className="anim-headline mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
         {dict.offer.title}
       </h2>
       <p className="mt-4 max-w-[620px] text-muted-foreground">{dict.offer.body}</p>

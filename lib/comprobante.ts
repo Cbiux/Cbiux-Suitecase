@@ -14,11 +14,29 @@ export function parseComprobanteDataUrl(value: string) {
   return { mime, buffer, dataUrl: `data:${mime};base64,${match[2]}` };
 }
 
+function sniffImageMime(bytes: Buffer) {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+    return "image/jpeg";
+  }
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return "image/png";
+  }
+  if (
+    bytes.length >= 12 &&
+    bytes.toString("ascii", 0, 4) === "RIFF" &&
+    bytes.toString("ascii", 8, 12) === "WEBP"
+  ) {
+    return "image/webp";
+  }
+  return "";
+}
+
 export async function fileToDataUrl(file: File) {
-  const mime = file.type === "image/jpg" ? "image/jpeg" : file.type;
-  if (!ALLOWED.has(mime)) throw new Error("BAD_IMAGE");
   if (file.size > COMPROBANTE_UPLOAD_MAX_BYTES) throw new Error("TOO_LARGE");
   const bytes = Buffer.from(await file.arrayBuffer());
+  let mime = file.type === "image/jpg" ? "image/jpeg" : file.type;
+  if (!ALLOWED.has(mime)) mime = sniffImageMime(bytes);
+  if (!ALLOWED.has(mime)) throw new Error("BAD_IMAGE");
   if (bytes.length > COMPROBANTE_MAX_BYTES) throw new Error("TOO_LARGE");
   return `data:${mime};base64,${bytes.toString("base64")}`;
 }

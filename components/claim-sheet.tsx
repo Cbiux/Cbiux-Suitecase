@@ -14,6 +14,7 @@ import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { useCurrency } from "./currency-provider";
+import { FileAttachButton } from "./file-attach";
 
 type Step = "detail" | "pay" | "success";
 
@@ -114,13 +115,13 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
-      setRecoveryToken(json.recoveryToken);
+      rememberGrant(selected.id, json.recoveryToken);
       setMemo(json.memo);
       if (json.wallets) await makeQr("sinpe", json.wallets);
       setStep("pay");
       await refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "CHECKOUT_FAILED");
+      setStatus(payError(error instanceof Error ? error.message : "CHECKOUT_FAILED"));
     } finally {
       setBusy(false);
     }
@@ -131,11 +132,43 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
     if (wallets) await makeQr(next, wallets);
   }
 
-  function receiptError(code: string) {
+  function grantKey(id: number) {
+    return `cbiux-grant-${id}`;
+  }
+
+  function rememberGrant(id: number, token: string) {
+    setRecoveryToken(token);
+    try {
+      sessionStorage.setItem(grantKey(id), token);
+    } catch {
+      /* ignore private mode */
+    }
+  }
+
+  function currentGrant() {
+    if (recoveryToken) return recoveryToken;
+    try {
+      return sessionStorage.getItem(grantKey(selected.id)) ?? "";
+    } catch {
+      return "";
+    }
+  }
+
+  function payError(code: string) {
+    if (code === "MISSING_FIELDS") return dict.claim.needBrand;
+    if (code === "SOLD") return dict.claim.soldNote;
+    if (code === "RESERVED") return dict.claim.heldNote;
+    if (code === "BAD_TOKEN" || code === "NOT_RESERVED") return dict.claim.payExpired;
     if (code === "MISSING_COMPROBANTE") return dict.claim.sinpeNeedReceipt;
     if (code === "BAD_IMAGE") return dict.claim.sinpeBadImage;
     if (code === "TOO_LARGE") return dict.claim.sinpeTooLarge;
+    if (code === "CHECKOUT_FAILED") return dict.claim.checkoutFailed;
+    if (code === "SINPE_FAILED") return dict.claim.sinpeFailed;
     return code;
+  }
+
+  function receiptError(code: string) {
+    return payError(code);
   }
 
   async function onReceipt(file: File | undefined) {
@@ -154,22 +187,27 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
 
   async function submitSinpe(event: React.FormEvent) {
     event.preventDefault();
+    const token = currentGrant();
     if (!comprobante) {
       setStatus(dict.claim.sinpeNeedReceipt);
+      return;
+    }
+    if (!token) {
+      setStatus(dict.claim.payExpired);
       return;
     }
     setBusy(true);
     setStatus("");
     try {
+      const blob = dataUrlToBlob(comprobante);
+      const form = new FormData();
+      form.append("positionId", String(selected.id));
+      form.append("recoveryToken", token);
+      form.append("reference", sinpeRef);
+      form.append("comprobante", blob, `${receiptName.replace(/\.[^.]+$/, "") || "comprobante"}.jpg`);
       const response = await fetch("/api/sinpe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          positionId: selected.id,
-          recoveryToken,
-          reference: sinpeRef,
-          comprobante,
-        }),
+        body: form,
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
@@ -192,7 +230,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           positionId: selected.id,
-          recoveryToken,
+          recoveryToken: currentGrant(),
           txHash,
           network,
         }),
@@ -202,7 +240,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       setStep("success");
       await refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "VERIFY_FAILED");
+      setStatus(payError(error instanceof Error ? error.message : "VERIFY_FAILED"));
     } finally {
       setBusy(false);
     }
@@ -218,7 +256,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           positionId: selected.id,
-          recoveryToken,
+          recoveryToken: currentGrant(),
           dataUrl: logo,
         }),
       });
@@ -227,7 +265,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       setStatus("ok");
       await refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "UPLOAD_FAILED");
+      setStatus(payError(error instanceof Error ? error.message : "UPLOAD_FAILED"));
     } finally {
       setBusy(false);
     }
@@ -236,11 +274,11 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   function onFile(file: File | undefined) {
     if (!file) return;
     if (!["image/png", "image/webp"].includes(file.type)) {
-      setStatus("BAD_IMAGE");
+      setStatus(dict.claim.sinpeBadImage);
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
-      setStatus("TOO_LARGE");
+      setStatus(dict.claim.sinpeTooLarge);
       return;
     }
     const reader = new FileReader();
@@ -383,25 +421,16 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
               ) : (
                 <form className="space-y-3" onSubmit={submitSinpe}>
                   <p className="text-sm leading-relaxed text-muted-foreground">{dict.claim.sinpeHelp}</p>
-                  <div className="space-y-2">
-                    <Label htmlFor="sinpe-receipt">{dict.claim.sinpeReceipt}</Label>
-                    <Input
-                      id="sinpe-receipt"
-                      type="file"
-                      required
-                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                      onChange={(e) => void onReceipt(e.target.files?.[0])}
-                    />
-                    <p className="text-xs text-muted-foreground">{dict.claim.sinpeReceiptHint}</p>
-                    {comprobante ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={comprobante}
-                        alt={receiptName || "comprobante"}
-                        className="max-h-36 rounded-xl border border-border object-contain"
-                      />
-                    ) : null}
-                  </div>
+                  <FileAttachButton
+                    id="sinpe-receipt"
+                    label={dict.claim.attachReceipt}
+                    hint={dict.claim.sinpeReceiptHint}
+                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                    required
+                    fileName={receiptName}
+                    previewUrl={comprobante}
+                    onFile={(file) => void onReceipt(file)}
+                  />
                   <Label htmlFor="sinpe-ref">{dict.claim.sinpeReference}</Label>
                   <Input
                     id="sinpe-ref"
@@ -446,18 +475,15 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
             </p>
             <p className="break-all font-mono text-[11px] text-muted-foreground">{txHash}</p>
             <form className="space-y-3" onSubmit={publish}>
-              <Label htmlFor="logo">{dict.claim.uploadLabel}</Label>
-              <Input
+              <FileAttachButton
                 id="logo"
-                type="file"
+                label={dict.claim.attachLogo}
+                hint={dict.claim.uploadHint}
                 accept="image/png,image/webp"
-                onChange={(e) => onFile(e.target.files?.[0])}
+                fileName={logo ? dict.claim.attached : ""}
+                previewUrl={logo}
+                onFile={onFile}
               />
-              <p className="text-xs text-muted-foreground">{dict.claim.uploadHint}</p>
-              {logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt="" className="h-16 object-contain" />
-              ) : null}
               <Button type="submit" className="w-full rounded-full" disabled={busy || !logo}>
                 {busy ? dict.claim.publishing : dict.claim.publish}
               </Button>
@@ -504,4 +530,13 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       </div>
     </SheetContent>
   );
+}
+
+function dataUrlToBlob(dataUrl: string) {
+  const [header, body] = dataUrl.split(",");
+  const mime = /data:(.*?);base64/.exec(header)?.[1] ?? "image/jpeg";
+  const binary = atob(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
 }

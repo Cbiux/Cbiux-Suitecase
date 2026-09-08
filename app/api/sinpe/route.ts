@@ -2,6 +2,7 @@ import { fileToDataUrl } from "@/lib/comprobante";
 import { submitSinpe } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 async function readPayload(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";

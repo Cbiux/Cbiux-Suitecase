@@ -26,6 +26,9 @@ export const metadata: Metadata = {
     images: [{ url: "/og.png", width: 1200, height: 675 }],
     type: "website",
   },
+  icons: {
+    icon: [{ url: "/logo.svg", type: "image/svg+xml" }],
+  },
   twitter: {
     card: "summary_large_image",
     title: "Put your brand on my road to Europe & India",

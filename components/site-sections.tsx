@@ -3,6 +3,7 @@
 import { SITE } from "@/lib/config";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
+import { BrandLogo } from "./brand-logo";
 
 export function DailyVlog() {
   const { dict } = useLanguage();
@@ -22,7 +23,7 @@ export function DailyVlog() {
         </figure>
         <div className="flex flex-col justify-center p-6 md:p-12">
           <p className="mono-label text-primary">{dict.vlog.kicker}</p>
-          <h2 className="mt-3 max-w-[16ch] text-[clamp(30px,7vw,48px)] font-semibold tracking-[-0.05em]">
+          <h2 className="anim-headline mt-3 max-w-[16ch] text-[clamp(30px,7vw,48px)] font-semibold tracking-[-0.05em]">
             {dict.vlog.title}
           </h2>
           <p className="mt-4 max-w-[46ch] text-[16px] leading-relaxed text-muted-foreground">
@@ -46,7 +47,7 @@ export function WhatYouGet() {
   return (
     <section id="included" className="shell py-16 md:py-24">
       <p className="mono-label text-primary">{dict.included.kicker}</p>
-      <h2 className="mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+      <h2 className="anim-headline mt-3 max-w-[16ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
         {dict.included.title}
       </h2>
       <p className="mt-4 max-w-[620px] text-muted-foreground">{dict.included.intro}</p>
@@ -77,7 +78,7 @@ export function HowItWorks() {
   return (
     <section id="how" className="shell py-16 md:py-24">
       <p className="mono-label text-primary">{dict.how.kicker}</p>
-      <h2 className="mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+      <h2 className="anim-headline mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
         {dict.how.title}
       </h2>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -107,7 +108,7 @@ export function Funds() {
   return (
     <section id="trip" className="shell py-16 md:py-24">
       <p className="mono-label text-primary">{dict.funds.kicker}</p>
-      <h2 className="mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+      <h2 className="anim-headline mt-3 text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
         {dict.funds.title}
       </h2>
       <p className="mt-4 max-w-[640px] text-muted-foreground">{dict.funds.intro}</p>
@@ -135,7 +136,7 @@ export function Addons() {
     <section id="addons" className="py-16 md:py-24">
       <div className="shell">
         <p className="mono-label text-primary">{dict.addons.kicker}</p>
-        <h2 className="mt-3 max-w-[18ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
+        <h2 className="anim-headline mt-3 max-w-[18ch] text-[clamp(32px,8vw,56px)] font-semibold tracking-[-0.05em]">
           {dict.addons.title}
         </h2>
         <div className="mt-8 grid gap-3 lg:grid-cols-3">
@@ -184,7 +185,7 @@ export function FinalCta() {
   return (
     <section className="shell pb-28 pt-8 text-center md:pb-24 md:pt-12">
       <p className="mono-label text-primary">{dict.cta.kicker}</p>
-      <h2 className="mx-auto mt-4 max-w-[16ch] text-[clamp(36px,9vw,64px)] font-semibold tracking-[-0.05em]">
+      <h2 className="anim-headline mx-auto mt-4 max-w-[16ch] text-[clamp(36px,9vw,64px)] font-semibold tracking-[-0.05em]">
         {dict.cta.title}
       </h2>
       <p className="mt-4 text-muted-foreground">{dict.cta.body}</p>
@@ -213,7 +214,12 @@ export function Footer() {
   const { dict } = useLanguage();
   return (
     <footer className="shell flex flex-wrap items-center justify-between gap-4 border-t border-border py-8 pb-28 font-mono text-[11px] text-muted-foreground md:pb-8">
-      <span className="tracking-[0.14em] text-foreground">{SITE.name}</span>
+      <span className="inline-flex items-center gap-2 tracking-[0.14em] text-foreground">
+        <span className="inline-flex h-6 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
+          <BrandLogo className="h-4 w-4" />
+        </span>
+        {SITE.name}
+      </span>
       <nav className="flex gap-5">
         <a href={SITE.xUrl} target="_blank" rel="noreferrer">
           X

@@ -132,12 +132,25 @@ export function SuitcasePhotoStage() {
   );
 }
 
-function SuitcaseView({ face, focus }: { face: Face; focus: boolean }) {
+export function HeroSuitcasePreview() {
+  return <SuitcaseView face="front" focus compact />;
+}
+
+function SuitcaseView({
+  face,
+  focus,
+  compact = false,
+}: {
+  face: Face;
+  focus: boolean;
+  compact?: boolean;
+}) {
   const { dict } = useLanguage();
   const { data, selected, selectedId, setSelectedId, setActiveFace, approachPhase } = useInventory();
   const spots = data?.positions.filter((spot) => spot.face === face) ?? [];
   const photo = PHOTOS[face];
   const zooming =
+    !compact &&
     focus &&
     selected?.face === face &&
     (approachPhase === "approaching" || approachPhase === "focused");
@@ -148,10 +161,14 @@ function SuitcaseView({ face, focus }: { face: Face; focus: boolean }) {
 
   return (
     <figure>
-      <div className="relative mx-auto w-full max-w-[520px] pb-8 pr-7 lg:max-w-none">
+      <div className={`relative mx-auto w-full ${compact ? "max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]" : "max-w-[520px] pb-8 pr-7 lg:max-w-none"}`}>
         <div
-          className={`overflow-visible rounded-2xl border bg-muted/50 dark:bg-muted ${
-            focus ? "border-primary/40 ring-2 ring-primary/15" : "border-border"
+          className={`overflow-visible ${
+            compact
+              ? "bg-transparent"
+              : `rounded-2xl border bg-muted/50 dark:bg-muted ${
+                  focus ? "border-primary/40 ring-2 ring-primary/15" : "border-border"
+                }`
           }`}
           onClick={() => setActiveFace(face)}
         >
@@ -194,24 +211,30 @@ function SuitcaseView({ face, focus }: { face: Face; focus: boolean }) {
             </div>
           </div>
         </div>
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between pr-7 font-mono text-[9px] font-semibold tracking-[0.12em] text-muted-foreground">
-          <span className="h-2.5 w-px bg-border" />
-          <span className="bg-background px-1.5">{side ? dict.dims.depth : dict.dims.width}</span>
-          <span className="h-2.5 w-px bg-border" />
-          <span className="absolute inset-x-7 top-1/2 h-px bg-border" />
-        </div>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex flex-col items-center justify-between pb-8 font-mono text-[9px] font-semibold tracking-[0.12em] text-muted-foreground">
-          <span className="h-px w-2.5 bg-border" />
-          <span className="bg-background px-0.5 [writing-mode:vertical-rl] rotate-180">
-            {dict.dims.height}
-          </span>
-          <span className="h-px w-2.5 bg-border" />
-          <span className="absolute inset-y-8 left-1/2 w-px bg-border" />
-        </div>
+        {compact ? null : (
+          <>
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between pr-7 font-mono text-[9px] font-semibold tracking-[0.12em] text-muted-foreground">
+              <span className="h-2.5 w-px bg-border" />
+              <span className="bg-background px-1.5">{side ? dict.dims.depth : dict.dims.width}</span>
+              <span className="h-2.5 w-px bg-border" />
+              <span className="absolute inset-x-7 top-1/2 h-px bg-border" />
+            </div>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex flex-col items-center justify-between pb-8 font-mono text-[9px] font-semibold tracking-[0.12em] text-muted-foreground">
+              <span className="h-px w-2.5 bg-border" />
+              <span className="bg-background px-0.5 [writing-mode:vertical-rl] rotate-180">
+                {dict.dims.height}
+              </span>
+              <span className="h-px w-2.5 bg-border" />
+              <span className="absolute inset-y-8 left-1/2 w-px bg-border" />
+            </div>
+          </>
+        )}
       </div>
-      <figcaption className="mt-1 text-center font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground">
-        {dict.faces[face]}
-      </figcaption>
+      {compact ? null : (
+        <figcaption className="mt-1 text-center font-mono text-[10px] font-semibold tracking-[0.16em] text-muted-foreground">
+          {dict.faces[face]}
+        </figcaption>
+      )}
     </figure>
   );
 }
