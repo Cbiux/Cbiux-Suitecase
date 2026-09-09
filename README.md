@@ -48,16 +48,16 @@ El inventario vive en **Neon Postgres** (`DATABASE_URL`) en producción. Sin esa
 El checkout ofrece tres métodos reales:
 
 1. **SINPE Móvil** al `84358038` (colones o USD). El sponsor **tiene que subir una foto o captura del comprobante**. Sin imagen no se acepta. El spot queda `reserved` 48 h. Sebastián revisa el comprobante en `/admin` y lo marca `sold` o lo rechaza.
-2. **USDC en EVM / Base** a `0xC38555a1Afcd8394532Caa11D0be60Df166eC188`. Pega el hash y, si querés, una captura del pago.
-3. **USDC en Stellar** a `GAS52QOWKVBW2WYDRQ3KS4CSJ2QQNALPGURK2HLGJSNE2XUH7BH555BS`. Pega el hash y, si querés, una captura del pago.
+2. **USDC en EVM / Base** a `0xC38555a1Afcd8394532Caa11D0be60Df166eC188`. El sponsor **tiene que subir una captura del pago**.
+3. **USDC en Stellar** a `GAS52QOWKVBW2WYDRQ3KS4CSJ2QQNALPGURK2HLGJSNE2XUH7BH555BS`. El sponsor **tiene que subir una captura del pago**.
 
 Flujo:
 
 1. Elegí una posición, dejá el nombre de la marca y **adjuntá el diseño** (PNG, WebP, JPG o SVG).
 2. El spot queda **reserved** y el diseño aparece ya en la maleta del sitio.
 3. Pagá por SINPE o USDC. En SINPE incluí el memo `CBIUX-01` … `CBIUX-22` si el canal lo permite.
-4. SINPE: el sponsor sube el comprobante; Sebastián lo verifica en `/admin`. USDC: `/api/verify` valida el formato del hash y puede guardar una captura del pago.
-5. Con `PAYMENT_VERIFY_MODE=stub` un hash EVM/Stellar con forma válida marca el spot `sold`. SINPE nunca se auto-vende.
+4. El sponsor sube el comprobante (SINPE o captura USDC). El spot queda `reserved`. Sebastián lo verifica en `/admin` y lo marca `sold` o lo rechaza.
+5. Nada se auto-vende: SINPE y USDC son confirmación manual.
 
 Helio sigue siendo opcional (`NEXT_PUBLIC_HELIO_PAY_URL`).
 
@@ -75,7 +75,7 @@ Helio sigue siendo opcional (`NEXT_PUBLIC_HELIO_PAY_URL`).
 
 - marcar un spot `available` / `reserved` / `sold`
 - ver el thumbnail del comprobante (SINPE o captura USDC) y abrirlo a tamaño completo
-- confirmar (SOLD) o rechazar (REJECT) una reserva SINPE
+- confirmar (SOLD) o rechazar (REJECT) una reserva con comprobante
 - setear sponsor y URL/data-URL del logo
 - resetear una posición
 

@@ -258,6 +258,7 @@ export async function submitSinpe(input: {
   reference?: string;
   comprobante: string;
   logo?: string;
+  network?: PaymentNetwork;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -274,12 +275,16 @@ export async function submitSinpe(input: {
     const receipt = parseComprobanteDataUrl(input.comprobante);
     const logo = input.logo ? parseArtworkDataUrl(input.logo) : state.logo;
     if (!logo) throw new Error("MISSING_ARTWORK");
+    const network: PaymentNetwork =
+      input.network === "evm" || input.network === "stellar" || input.network === "solana"
+        ? input.network
+        : "sinpe";
 
     store.positions[String(catalog.id)] = {
       ...state,
       status: "reserved",
       logo,
-      network: "sinpe",
+      network,
       txHash: input.reference?.trim() ?? "",
       comprobante: receipt.dataUrl,
       reservedUntil: new Date(
@@ -290,7 +295,7 @@ export async function submitSinpe(input: {
     return {
       positionId: catalog.id,
       status: "reserved" as const,
-      network: "sinpe" as const,
+      network,
       reservedUntil: store.positions[String(catalog.id)].reservedUntil,
     };
   });

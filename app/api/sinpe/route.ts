@@ -1,5 +1,6 @@
 import { comprobanteFromForm } from "@/lib/comprobante";
 import { submitSinpe } from "@/lib/store";
+import type { PaymentNetwork } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -14,6 +15,7 @@ async function readPayload(request: Request) {
       reference: String(form.get("reference") ?? ""),
       comprobante: await comprobanteFromForm(form),
       logo: String(form.get("logo") ?? "").trim(),
+      network: String(form.get("network") ?? "sinpe").trim(),
     };
   }
 
@@ -23,6 +25,7 @@ async function readPayload(request: Request) {
     reference?: string;
     comprobante?: string;
     logo?: string;
+    network?: string;
   };
   return {
     positionId: Number(body.positionId),
@@ -30,6 +33,7 @@ async function readPayload(request: Request) {
     reference: body.reference,
     comprobante: body.comprobante?.trim() ?? "",
     logo: body.logo?.trim() ?? "",
+    network: body.network?.trim() ?? "sinpe",
   };
 }
 
@@ -42,7 +46,10 @@ export async function POST(request: Request) {
     if (!payload.comprobante) {
       return Response.json({ error: "MISSING_COMPROBANTE" }, { status: 400 });
     }
-    const result = await submitSinpe(payload);
+    const result = await submitSinpe({
+      ...payload,
+      network: payload.network as PaymentNetwork,
+    });
     return Response.json(result);
   } catch (error) {
     const code = error instanceof Error ? error.message : "SINPE_FAILED";

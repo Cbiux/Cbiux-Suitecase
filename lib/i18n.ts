@@ -321,12 +321,13 @@ export const copy = {
       sinpeUploading: "SUBIENDO COMPROBANTE",
       paste: "Hash de la transacción",
       attachTxReceipt: "Adjuntar captura del pago",
-      txReceiptHint:
-        "Captura de la wallet o del explorer. JPG, PNG o WebP. Máximo 8 MB. Opcional, además del hash.",
+      txReceiptHint: "Captura de la wallet o del explorer. JPG, PNG o WebP. Máximo 8 MB.",
+      usdcHelp:
+        "Enviá USDC al address de arriba. Después subí una captura del pago. Sebastián lo revisa y marca el spot vendido en /admin.",
+      usdcSubmit: "ENVIAR COMPROBANTE",
       verify: "VERIFICAR PAGO",
       verifying: "VERIFICANDO",
-      demoNote:
-        "USDC: un hash con formato válido confirma en modo stub. Podés adjuntar una captura del pago. SINPE siempre es confirmación manual.",
+      demoNote: "SINPE y USDC se confirman a mano en /admin con el comprobante.",
       demoWallets: "",
       successKicker: "PAGO VERIFICADO",
       successTitle: "YA TENÉS TU SPOT",
@@ -353,7 +354,7 @@ export const copy = {
       pendingKicker: "RESERVA ENVIADA",
       pendingTitle: "Diseño recibido",
       pendingBody:
-        "El comprobante SINPE quedó para revisión. El diseño se coloca en la maleta. Sebastián confirma el pago en /admin.",
+        "El comprobante quedó para revisión. El diseño se coloca en la maleta. Sebastián confirma el pago en /admin.",
       coordHelp: "WhatsApp o Telegram para coordinar el diseño, el pago o el proof.",
       artworkOnBag: "Se coloca en el spot cuando mandás el comprobante. Después lo imprimimos sobre la maleta.",
     },
@@ -940,12 +941,13 @@ export const copy = {
       sinpeUploading: "UPLOADING RECEIPT",
       paste: "Transaction hash",
       attachTxReceipt: "Attach payment screenshot",
-      txReceiptHint:
-        "Wallet or explorer screenshot. JPG, PNG or WebP. Max 8 MB. Optional, in addition to the hash.",
+      txReceiptHint: "Wallet or explorer screenshot. JPG, PNG or WebP. Max 8 MB.",
+      usdcHelp:
+        "Send USDC to the address above. Then upload a payment screenshot. Sebastián reviews it and marks the spot sold from /admin.",
+      usdcSubmit: "UPLOAD RECEIPT",
       verify: "VERIFY PAYMENT",
       verifying: "VERIFYING",
-      demoNote:
-        "USDC: a valid-looking hash confirms in stub mode. You can also attach a payment screenshot. SINPE is always manual.",
+      demoNote: "SINPE and USDC are confirmed by hand in /admin with the receipt.",
       demoWallets: "",
       successKicker: "PAYMENT VERIFIED",
       successTitle: "I GOT MY SPOT",
@@ -972,7 +974,7 @@ export const copy = {
       pendingKicker: "RESERVATION SENT",
       pendingTitle: "Artwork received",
       pendingBody:
-        "The SINPE receipt is waiting for review. The artwork goes on the suitcase. Sebastián confirms the payment from /admin.",
+        "The receipt is waiting for review. The artwork goes on the suitcase. Sebastián confirms the payment from /admin.",
       coordHelp: "WhatsApp or Telegram to coordinate the artwork, payment or proof.",
       artworkOnBag: "It goes on the spot when you send the receipt. We print it on the suitcase afterwards.",
     },

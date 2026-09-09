@@ -53,7 +53,6 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState<PaymentNetwork>("sinpe");
-  const [txHash, setTxHash] = useState("");
   const [sinpeRef, setSinpeRef] = useState("");
   const [sinpeSent, setSinpeSent] = useState(false);
   const [comprobante, setComprobante] = useState("");
@@ -245,7 +244,8 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       const form = new FormData();
       form.append("positionId", String(selected.id));
       form.append("recoveryToken", token);
-      form.append("reference", sinpeRef);
+      form.append("reference", network === "sinpe" ? sinpeRef : "");
+      form.append("network", network);
       appendReceipt(form);
       if (logo) form.append("logo", logo);
       const response = await fetch("/api/sinpe", {
@@ -260,39 +260,6 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       await refresh();
     } catch (error) {
       setStatus(receiptError(error instanceof Error ? error.message : "SINPE_FAILED"));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function verify(event: React.FormEvent) {
-    event.preventDefault();
-    const token = currentGrant();
-    if (!token) {
-      setStatus(dict.claim.payExpired);
-      return;
-    }
-    setBusy(true);
-    setStatus("");
-    try {
-      const form = new FormData();
-      form.append("positionId", String(selected.id));
-      form.append("recoveryToken", token);
-      form.append("txHash", txHash.trim());
-      form.append("network", network);
-      if (logo) form.append("logo", logo);
-      appendReceipt(form);
-      const response = await fetch("/api/verify", {
-        method: "POST",
-        body: form,
-      });
-      const json = await response.json();
-      if (!response.ok) throw new Error(json.error);
-      setVerified(true);
-      setStep("success");
-      await refresh();
-    } catch (error) {
-      setStatus(payError(error instanceof Error ? error.message : "VERIFY_FAILED"));
     } finally {
       setBusy(false);
     }
@@ -501,62 +468,46 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
                 <p className="mt-3 font-mono text-[11px] text-primary">MEMO {memo}</p>
               ) : null}
             </div>
-            {network === "sinpe" ? (
-              sinpeSent ? (
-                <p className="rounded-2xl border border-primary/30 bg-primary/10 px-3 py-3 text-sm text-primary">
-                  {dict.claim.sinpeWait}
-                </p>
-              ) : (
-                <form className="space-y-3" onSubmit={submitSinpe}>
-                  <p className="text-sm leading-relaxed text-muted-foreground">{dict.claim.sinpeHelp}</p>
-                  <FileAttachButton
-                    id="sinpe-receipt"
-                    label={dict.claim.attachReceipt}
-                    hint={dict.claim.sinpeReceiptHint}
-                    accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                    required
-                    fileName={receiptName}
-                    previewUrl={comprobante}
-                    onFile={(file) => void onReceipt(file)}
-                  />
-                  <Label htmlFor="sinpe-ref">{dict.claim.sinpeReference}</Label>
-                  <Input
-                    id="sinpe-ref"
-                    value={sinpeRef}
-                    onChange={(e) => setSinpeRef(e.target.value)}
-                    maxLength={120}
-                  />
-                  <Button
-                    type="submit"
-                    className="w-full rounded-full"
-                    disabled={busy || !comprobante}
-                  >
-                    {busy ? dict.claim.sinpeUploading : dict.claim.sinpeSubmit}
-                  </Button>
-                </form>
-              )
+            {sinpeSent ? (
+              <p className="rounded-2xl border border-primary/30 bg-primary/10 px-3 py-3 text-sm text-primary">
+                {dict.claim.sinpeWait}
+              </p>
             ) : (
-              <form className="space-y-3" onSubmit={verify}>
-                <Label htmlFor="tx">{dict.claim.paste}</Label>
-                <Input
-                  id="tx"
-                  required
-                  value={txHash}
-                  onChange={(e) => setTxHash(e.target.value)}
-                  placeholder={network === "evm" ? "0x…" : "stellar hash"}
-                />
+              <form className="space-y-3" onSubmit={submitSinpe}>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {network === "sinpe" ? dict.claim.sinpeHelp : dict.claim.usdcHelp}
+                </p>
                 <FileAttachButton
-                  id="tx-receipt"
-                  label={dict.claim.attachTxReceipt}
-                  hint={dict.claim.txReceiptHint}
+                  id="payment-receipt"
+                  label={network === "sinpe" ? dict.claim.attachReceipt : dict.claim.attachTxReceipt}
+                  hint={network === "sinpe" ? dict.claim.sinpeReceiptHint : dict.claim.txReceiptHint}
                   accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                  required
                   fileName={receiptName}
                   previewUrl={comprobante}
                   onFile={(file) => void onReceipt(file)}
                 />
-                <p className="text-xs text-muted-foreground">{dict.claim.demoNote}</p>
-                <Button type="submit" className="w-full rounded-full" disabled={busy}>
-                  {busy ? dict.claim.verifying : dict.claim.verify}
+                {network === "sinpe" ? (
+                  <>
+                    <Label htmlFor="sinpe-ref">{dict.claim.sinpeReference}</Label>
+                    <Input
+                      id="sinpe-ref"
+                      value={sinpeRef}
+                      onChange={(e) => setSinpeRef(e.target.value)}
+                      maxLength={120}
+                    />
+                  </>
+                ) : null}
+                <Button
+                  type="submit"
+                  className="w-full rounded-full"
+                  disabled={busy || !comprobante}
+                >
+                  {busy
+                    ? dict.claim.sinpeUploading
+                    : network === "sinpe"
+                      ? dict.claim.sinpeSubmit
+                      : dict.claim.usdcSubmit}
                 </Button>
               </form>
             )}
@@ -574,11 +525,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
             <p className="text-sm text-muted-foreground">
               {brandName} · {selected.name} · {format(selected.price)}
             </p>
-            {verified && txHash ? (
-              <p className="break-all font-mono text-[11px] text-muted-foreground">{txHash}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">{dict.claim.pendingBody}</p>
-            )}
+            <p className="text-sm text-muted-foreground">{dict.claim.pendingBody}</p>
             {comprobante ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
