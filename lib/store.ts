@@ -336,6 +336,14 @@ export async function adminList() {
   });
 }
 
+function nextAdminLogo(input: string | undefined, current: string) {
+  if (input === undefined) return current;
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return parseArtworkDataUrl(trimmed);
+}
+
 export async function adminUpdateSpot(input: {
   positionId: number;
   status?: SpotStatus;
@@ -347,7 +355,7 @@ export async function adminUpdateSpot(input: {
     const store = await readStore();
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
-    const current = store.positions[String(catalog.id)];
+    const current = store.positions[String(catalog.id)] ?? emptyState();
 
     if (input.release) {
       store.positions[String(catalog.id)] = emptyState();
@@ -370,7 +378,7 @@ export async function adminUpdateSpot(input: {
         ...current,
         status: nextStatus,
         sponsor: input.sponsor ?? current.sponsor,
-        logo: input.logo ?? current.logo,
+        logo: nextAdminLogo(input.logo, current.logo),
         reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
         reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:

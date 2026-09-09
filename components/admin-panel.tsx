@@ -93,11 +93,15 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
   }
 
   async function updateSpot(positionId: number, patch: Record<string, unknown>) {
-    await fetch("/api/admin/spots", {
+    const response = await fetch("/api/admin/spots", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ positionId, ...patch }),
     });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error || "UPDATE_FAILED");
+    }
     await load();
   }
 
@@ -154,7 +158,8 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
       <section className="mt-10">
         <h2 className="text-xl font-medium">Logos y comprobantes</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Tocá <strong>Descargar logo</strong> o <strong>Descargar comprobante</strong> para guardar el archivo.
+          Tocá <strong>Descargar logo</strong> para guardar el archivo, o <strong>Cambiar logo</strong> para
+          reemplazarlo. El recuadro indica el tamaño exacto.
         </p>
         {artworkSpots.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
@@ -177,7 +182,14 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                   </a>
                 ) : null}
                 <div className="mt-4 space-y-4">
-                  <AdminArtwork positionId={spot.id} sponsor={spot.sponsor} src={spot.logo} size="lg" />
+                  <AdminArtwork
+                    positionId={spot.id}
+                    sponsor={spot.sponsor}
+                    src={spot.logo}
+                    panelSize={spot.size}
+                    size="lg"
+                    onReplace={(logo) => updateSpot(spot.id, { logo })}
+                  />
                   {spot.comprobante ? (
                     <AdminArtwork
                       positionId={spot.id}
@@ -265,30 +277,28 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                     <button
                       type="button"
                       className="rounded-full bg-[#147a4b] px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] text-white"
-                      onClick={() => updateSpot(spot.id, { status: "sold", sponsor: spot.sponsor })}
+                      onClick={() => void updateSpot(spot.id, { status: "sold", sponsor: spot.sponsor }).catch(() => undefined)}
                     >
                       Confirmar
                     </button>
                     <button
                       type="button"
                       className="rounded-full border border-destructive px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] text-destructive"
-                      onClick={() => updateSpot(spot.id, { release: true })}
+                      onClick={() => void updateSpot(spot.id, { release: true }).catch(() => undefined)}
                     >
                       Rechazar
                     </button>
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap items-start gap-6">
-                  {spot.logo ? (
-                    <AdminArtwork
-                      positionId={spot.id}
-                      sponsor={spot.sponsor}
-                      src={spot.logo}
-                      size="lg"
-                    />
-                  ) : (
-                    <p className="text-xs text-muted-foreground">Sin logo adjunto.</p>
-                  )}
+                  <AdminArtwork
+                    positionId={spot.id}
+                    sponsor={spot.sponsor}
+                    src={spot.logo}
+                    panelSize={spot.size}
+                    size="lg"
+                    onReplace={(logo) => updateSpot(spot.id, { logo })}
+                  />
                   {spot.comprobante ? (
                     <AdminArtwork
                       positionId={spot.id}
@@ -457,7 +467,6 @@ function AdminRow({
   onUpdate: (id: number, patch: Record<string, unknown>) => Promise<void>;
 }) {
   const [sponsor, setSponsor] = useState(spot.sponsor);
-  const [logo, setLogo] = useState(spot.logo);
   const [status, setStatus] = useState<SpotStatus>(spot.status);
 
   return (
@@ -497,42 +506,28 @@ function AdminRow({
         ) : null}
       </td>
       <td className="p-3">
-        <div className="flex flex-col gap-2">
-          {spot.logo ? (
-            <AdminArtwork positionId={spot.id} sponsor={spot.sponsor || sponsor} src={spot.logo} size="sm" />
-          ) : (
-            <p className="text-xs text-muted-foreground">Sin logo</p>
-          )}
-          <input
-            className="w-40 rounded-lg border border-border bg-card px-2 py-1"
-            value={logo}
-            onChange={(e) => setLogo(e.target.value)}
-            placeholder="https://… o data:"
-          />
-        </div>
+        <AdminArtwork
+          positionId={spot.id}
+          sponsor={spot.sponsor || sponsor}
+          src={spot.logo}
+          panelSize={spot.size}
+          size="sm"
+          onReplace={(logo) => onUpdate(spot.id, { logo })}
+        />
       </td>
       <td className="p-3">
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             className="rounded-md border border-border px-2 py-1 font-mono text-[10px]"
-            onClick={() => onUpdate(spot.id, { status, sponsor, logo })}
+            onClick={() => void onUpdate(spot.id, { status, sponsor }).catch(() => undefined)}
           >
             SAVE
           </button>
-          {spot.logo ? (
-            <a
-              href={`/api/admin/artwork/${spot.id}`}
-              download
-              className="rounded-md bg-primary px-2 py-1 font-mono text-[10px] font-semibold text-primary-foreground"
-            >
-              DESCARGAR LOGO
-            </a>
-          ) : null}
           <button
             type="button"
             className="rounded-md border border-border px-2 py-1 font-mono text-[10px]"
-            onClick={() => onUpdate(spot.id, { release: true })}
+            onClick={() => void onUpdate(spot.id, { release: true }).catch(() => undefined)}
           >
             RESET
           </button>
