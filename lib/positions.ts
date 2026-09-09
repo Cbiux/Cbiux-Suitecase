@@ -282,3 +282,19 @@ export function padSpot(id: number) {
 export function getCatalogById(id: number) {
   return POSITION_CATALOG.find((position) => position.id === id);
 }
+
+export function artworkSpec(size: string) {
+  const match = /(\d+)\s*[×x]\s*(\d+)/i.exec(size);
+  const cmW = match ? Number(match[1]) : 17;
+  const cmH = match ? Number(match[2]) : 12;
+  const pxW = Math.round((cmW / 2.54) * 300 / 50) * 50;
+  const pxH = Math.round((cmH / 2.54) * 300 / 50) * 50;
+  return {
+    cmW,
+    cmH,
+    pxW,
+    pxH,
+    sizeLabel: `${cmW} × ${cmH} cm`,
+    pixelLabel: `${pxW} × ${pxH} px`,
+  };
+}

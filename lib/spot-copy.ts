@@ -4,6 +4,10 @@ export function withBrand(template: string, brand: string) {
   return template.replace("{brand}", brand.trim());
 }
 
+export function fillCopy(template: string, vars: Record<string, string>) {
+  return template.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? "");
+}
+
 export function spotOwnerLabel(
   spot: Pick<LivePosition, "status" | "sponsor">,
   dict: {

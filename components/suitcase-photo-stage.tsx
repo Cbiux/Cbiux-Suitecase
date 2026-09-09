@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FACE_ORDER, padSpot } from "@/lib/positions";
 import type { Face, LivePosition } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
@@ -132,18 +132,87 @@ export function SuitcasePhotoStage() {
   );
 }
 
+const HERO_FACE_MS = 4200;
+
+function reduceMotionSubscribe(onStoreChange: () => void) {
+  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+  media.addEventListener("change", onStoreChange);
+  return () => media.removeEventListener("change", onStoreChange);
+}
+
 export function HeroSuitcasePreview() {
-  return <SuitcaseView face="front" focus compact />;
+  const { dict } = useLanguage();
+  const [face, setFace] = useState<Face>("front");
+  const [paused, setPaused] = useState(false);
+  const reduceMotion = useSyncExternalStore(
+    reduceMotionSubscribe,
+    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+    () => false,
+  );
+
+  useEffect(() => {
+    if (paused || reduceMotion) return;
+    const timer = window.setInterval(() => {
+      setFace((current) => FACE_ORDER[(FACE_ORDER.indexOf(current) + 1) % FACE_ORDER.length]);
+    }, HERO_FACE_MS);
+    return () => window.clearInterval(timer);
+  }, [paused, reduceMotion]);
+
+  return (
+    <div
+      className="hero-suitcase-stage relative mx-auto w-full max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="relative">
+        {FACE_ORDER.map((item) => {
+          const active = item === face;
+          return (
+            <div
+              key={item}
+              className={`transition-opacity duration-700 ease-out ${
+                active ? "relative opacity-100" : "pointer-events-none absolute inset-0 opacity-0"
+              }`}
+              style={reduceMotion ? { transition: "none" } : undefined}
+              aria-hidden={!active}
+              inert={!active}
+            >
+              <SuitcaseView face={item} focus compact chrome={false} />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 grid grid-cols-4 gap-1">
+        {FACE_ORDER.map((item) => {
+          const active = item === face;
+          return (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setFace(item)}
+              className={`min-h-9 rounded-full px-1 font-mono text-[9px] font-semibold tracking-[0.08em] transition-colors ${
+                active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {dict.faces[item]}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function SuitcaseView({
   face,
   focus,
   compact = false,
+  chrome = true,
 }: {
   face: Face;
   focus: boolean;
   compact?: boolean;
+  chrome?: boolean;
 }) {
   const { dict } = useLanguage();
   const { data, selected, selectedId, setSelectedId, setActiveFace, approachPhase } = useInventory();
@@ -160,8 +229,8 @@ function SuitcaseView({
   const side = face === "left" || face === "right";
 
   return (
-    <figure>
-      <div className={`relative mx-auto w-full ${compact ? "hero-suitcase-stage max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]" : "max-w-[520px] pb-8 pr-7 lg:max-w-none"}`}>
+    <figure className={compact ? "m-0" : undefined}>
+      <div className={`relative mx-auto w-full ${compact ? (chrome ? "hero-suitcase-stage max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]" : "w-full") : "max-w-[520px] pb-8 pr-7 lg:max-w-none"}`}>
         <div
           className={`overflow-visible ${
             compact
@@ -201,7 +270,7 @@ function SuitcaseView({
                     spot={spot}
                     mirror={photo.mirror}
                     active={selectedId === spot.id}
-                    revealIndex={compact ? index : undefined}
+                    revealIndex={compact && chrome ? index : undefined}
                     onSelect={() => {
                       setActiveFace(face);
                       setSelectedId(spot.id);

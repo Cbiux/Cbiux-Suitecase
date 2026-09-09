@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { compressReceipt } from "@/lib/compress-receipt";
 import { ARTWORK_ACCEPT, SITE } from "@/lib/config";
-import { padSpot } from "@/lib/positions";
+import { artworkSpec, padSpot } from "@/lib/positions";
 import { formatMoney } from "@/lib/currency";
 import { phoneLooksValid } from "@/lib/phone";
 import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
@@ -17,7 +17,7 @@ import { useInventory } from "./inventory-provider";
 import { useCurrency } from "./currency-provider";
 import { FileAttachButton } from "./file-attach";
 import { CoordContacts } from "./coord-contacts";
-import { spotOwnerLabel } from "@/lib/spot-copy";
+import { fillCopy, spotOwnerLabel } from "@/lib/spot-copy";
 
 type Step = "detail" | "pay" | "success";
 
@@ -82,6 +82,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 22 spots · desde ${formatMoney(45, currency)} · USDC`
       : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 22 spots · from ${formatMoney(45, currency)} · USDC`;
   }, [selected, brandName, locale, currency]);
+
+  const spec = artworkSpec(selected.size);
+  const logoHint = fillCopy(dict.claim.logoSizeHint, {
+    size: spec.sizeLabel,
+    pixels: spec.pixelLabel,
+  });
 
   useEffect(() => {
     try {
@@ -334,7 +340,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{dict.currency.rateNote}</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {dict.claim.approx} {selected.size}
+          {dict.claim.approx} {selected.size} · {spec.pixelLabel}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">{selected.logoGuidance}</p>
 
@@ -393,11 +399,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
             <FileAttachButton
               id="artwork"
               label={dict.claim.attachLogo}
-              hint={dict.claim.artworkOnBag}
+              hint={logoHint}
               accept={ARTWORK_ACCEPT}
               required
               fileName={logoName}
               previewUrl={logo}
+              frame={spec}
               onFile={onFile}
             />
             <Button type="submit" className="w-full rounded-full" disabled={busy || !logo || !phoneLooksValid(phone)}>
@@ -539,10 +546,11 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
               <FileAttachButton
                 id="logo"
                 label={dict.claim.attachLogo}
-                hint={dict.claim.uploadHint}
+                hint={logoHint}
                 accept={ARTWORK_ACCEPT}
                 fileName={logoName || (logo ? dict.claim.attached : "")}
                 previewUrl={logo}
+                frame={spec}
                 onFile={onFile}
               />
               <Button type="submit" className="w-full rounded-full" disabled={busy || !logo}>

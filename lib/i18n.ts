@@ -374,6 +374,8 @@ export const copy = {
         "El comprobante quedó para revisión. El diseño se coloca en la maleta. Sebastián confirma el pago en /admin.",
       coordHelp: "WhatsApp o Telegram para coordinar el diseño, el pago o el proof.",
       artworkOnBag: "Se coloca en el spot cuando mandás el comprobante. Después lo imprimimos sobre la maleta.",
+      logoSizeHint:
+        "El recuadro mide {size}. Subí el logo a {pixels}, recortado a ese mismo recorte y sin márgenes, para que cubra todo el espacio. PNG transparente queda mejor.",
     },
     footer: {
       trip: "Compile → Devcon · 2026",
@@ -1011,6 +1013,8 @@ export const copy = {
         "The receipt is waiting for review. The artwork goes on the suitcase. Sebastián confirms the payment from /admin.",
       coordHelp: "WhatsApp or Telegram to coordinate the artwork, payment or proof.",
       artworkOnBag: "It goes on the spot when you send the receipt. We print it on the suitcase afterwards.",
+      logoSizeHint:
+        "The panel is {size}. Upload the logo at {pixels}, cropped to that same frame with no extra margins, so it fills the space. Transparent PNG works best.",
     },
     footer: {
       trip: "Compile → Devcon · 2026",

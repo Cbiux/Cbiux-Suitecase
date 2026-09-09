@@ -27,9 +27,6 @@ export function Header() {
           <a className="mono-label hover:text-foreground" href="#positions">
             {dict.nav.positions}
           </a>
-          <a className="mono-label hover:text-foreground" href="#share">
-            {dict.nav.share}
-          </a>
           <a className="mono-label hover:text-foreground" href="#offer">
             {dict.nav.offer}
           </a>
@@ -44,6 +41,9 @@ export function Header() {
           </a>
           <a className="mono-label hover:text-foreground" href="#trip">
             {dict.nav.trip}
+          </a>
+          <a className="mono-label hover:text-foreground" href="#share">
+            {dict.nav.share}
           </a>
         </nav>
         <div className="flex items-center gap-1.5 sm:gap-2">

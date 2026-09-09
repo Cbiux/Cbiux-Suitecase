@@ -32,7 +32,6 @@ export default async function Home() {
         <main id="main" className="pb-24 md:pb-0">
           <Hero />
           <PositionsBoard />
-          <ShareSupport />
           <OfferForm />
           <WhatYouGet />
           <DailyVlog />
@@ -40,6 +39,7 @@ export default async function Home() {
           <Funds />
           <Addons />
           <FinalCta />
+          <ShareSupport />
         </main>
         <Footer />
         <StickyCta />
