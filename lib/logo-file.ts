@@ -47,7 +47,7 @@ export function decodeArtwork(dataUrl: string) {
   return { mime, buffer: Buffer.from(match[2], "base64") };
 }
 
-function slugBrand(value: string) {
+export function slugBrand(value: string) {
   const slug = value
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

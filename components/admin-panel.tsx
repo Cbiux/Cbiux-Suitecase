@@ -9,6 +9,7 @@ import { padSpot } from "@/lib/positions";
 import { SITE } from "@/lib/config";
 import { whatsappHref } from "@/lib/phone";
 import { AdminArtwork } from "./admin-artwork";
+import { AdminThanksCard } from "./admin-thanks";
 import { CoordContacts } from "./coord-contacts";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -188,6 +189,30 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                   ) : null}
                 </div>
               </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-12">
+        <h2 className="text-xl font-medium">Agradecimiento para Instagram</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Preview 1080×1350 para feed de Instagram. El logo de la marca queda al centro. Descargá el PNG, copiá el texto y pasáselo para que lo suban a sus redes.
+        </p>
+        {artworkSpots.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            Cuando haya un logo, acá aparece el post de gracias listo para descargar.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {artworkSpots.map((spot) => (
+              <AdminThanksCard
+                key={`thanks-${spot.id}`}
+                positionId={spot.id}
+                sponsor={spot.sponsor}
+                fallbackName={spot.name}
+                logo={spot.logo}
+              />
             ))}
           </div>
         )}

@@ -23,7 +23,23 @@ export async function GET(
     return Response.json({ error: "NO_LOGO" }, { status: 404 });
   }
   if (/^https?:\/\//i.test(src)) {
-    return Response.redirect(src, 302);
+    try {
+      const remote = await fetch(src);
+      if (!remote.ok) {
+        return Response.json({ error: "BAD_IMAGE" }, { status: 400 });
+      }
+      const mime = (remote.headers.get("content-type") || "image/png").split(";")[0];
+      const { filename } = artworkFileMeta(src, spot.sponsor, spot.id, kind);
+      return new Response(await remote.arrayBuffer(), {
+        headers: {
+          "Content-Type": mime,
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Cache-Control": "no-store",
+        },
+      });
+    } catch {
+      return Response.json({ error: "BAD_IMAGE" }, { status: 502 });
+    }
   }
   const decoded = decodeArtwork(src);
   if (!decoded?.buffer.length) {
