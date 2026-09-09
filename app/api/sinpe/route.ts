@@ -1,4 +1,4 @@
-import { fileToDataUrl } from "@/lib/comprobante";
+import { comprobanteFromForm } from "@/lib/comprobante";
 import { submitSinpe } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
@@ -8,18 +8,12 @@ async function readPayload(request: Request) {
   const contentType = request.headers.get("content-type") ?? "";
   if (contentType.includes("multipart/form-data")) {
     const form = await request.formData();
-    const file = form.get("comprobante");
-    const comprobante =
-      file instanceof File
-        ? await fileToDataUrl(file)
-        : typeof file === "string"
-          ? file
-          : "";
     return {
       positionId: Number(form.get("positionId")),
       recoveryToken: String(form.get("recoveryToken") ?? "").trim(),
       reference: String(form.get("reference") ?? ""),
-      comprobante,
+      comprobante: await comprobanteFromForm(form),
+      logo: String(form.get("logo") ?? "").trim(),
     };
   }
 
@@ -28,12 +22,14 @@ async function readPayload(request: Request) {
     recoveryToken?: string;
     reference?: string;
     comprobante?: string;
+    logo?: string;
   };
   return {
     positionId: Number(body.positionId),
     recoveryToken: body.recoveryToken?.trim() ?? "",
     reference: body.reference,
     comprobante: body.comprobante?.trim() ?? "",
+    logo: body.logo?.trim() ?? "",
   };
 }
 

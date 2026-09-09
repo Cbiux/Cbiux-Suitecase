@@ -22,6 +22,7 @@ export type PositionState = {
   status: SpotStatus;
   sponsor: string;
   email: string;
+  phone: string;
   logo: string;
   reservedAt: string;
   reservedUntil: string;
@@ -47,6 +48,7 @@ export type OfferRecord = {
   createdAt: string;
   brand: string;
   email: string;
+  phone: string;
   proposal: string;
   note: string;
   status: OfferStatus;

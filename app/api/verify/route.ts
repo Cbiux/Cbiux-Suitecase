@@ -1,3 +1,4 @@
+import { comprobanteFromForm } from "@/lib/comprobante";
 import { getWallets, getPaymentVerifyMode } from "@/lib/config";
 import { detectNetwork, paymentDestination, verifyOnChain } from "@/lib/payments";
 import { verifyPayment } from "@/lib/store";
@@ -5,24 +6,50 @@ import { getCatalogById } from "@/lib/positions";
 import type { PaymentNetwork } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
+
+async function readPayload(request: Request) {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (contentType.includes("multipart/form-data")) {
+    const form = await request.formData();
+    const network = String(form.get("network") ?? "").trim() as PaymentNetwork | "";
+    return {
+      positionId: Number(form.get("positionId")),
+      recoveryToken: String(form.get("recoveryToken") ?? "").trim(),
+      txHash: String(form.get("txHash") ?? "").trim(),
+      network: network || undefined,
+      logo: String(form.get("logo") ?? "").trim(),
+      comprobante: await comprobanteFromForm(form),
+    };
+  }
+
+  const body = (await request.json()) as {
+    positionId?: number;
+    recoveryToken?: string;
+    txHash?: string;
+    network?: PaymentNetwork;
+    logo?: string;
+    comprobante?: string;
+  };
+  return {
+    positionId: Number(body.positionId),
+    recoveryToken: body.recoveryToken?.trim() ?? "",
+    txHash: body.txHash?.trim() ?? "",
+    network: body.network,
+    logo: body.logo?.trim() ?? "",
+    comprobante: body.comprobante?.trim() ?? "",
+  };
+}
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as {
-      positionId?: number;
-      recoveryToken?: string;
-      txHash?: string;
-      network?: PaymentNetwork;
-    };
-    const positionId = Number(body.positionId);
-    const recoveryToken = body.recoveryToken?.trim() ?? "";
-    const txHash = body.txHash?.trim() ?? "";
-    const catalog = getCatalogById(positionId);
-    if (!catalog || !recoveryToken || !txHash) {
+    const payload = await readPayload(request);
+    const catalog = getCatalogById(payload.positionId);
+    if (!catalog || !payload.recoveryToken || !payload.txHash) {
       return Response.json({ error: "MISSING_FIELDS" }, { status: 400 });
     }
 
-    const network = body.network || detectNetwork(txHash);
+    const network = payload.network || detectNetwork(payload.txHash);
     if (!network || network === "sinpe") {
       return Response.json(
         { error: network === "sinpe" ? "SINPE_MANUAL" : "INVALID_HASH" },
@@ -36,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     const chain = await verifyOnChain({
-      txHash,
+      txHash: payload.txHash,
       network,
       amountUsd: catalog.price,
       recipient: paymentDestination(network, wallets),
@@ -46,11 +73,13 @@ export async function POST(request: Request) {
     }
 
     const result = await verifyPayment({
-      positionId,
-      recoveryToken,
-      txHash,
+      positionId: payload.positionId,
+      recoveryToken: payload.recoveryToken,
+      txHash: payload.txHash,
       network,
       mode: getPaymentVerifyMode(),
+      logo: payload.logo,
+      comprobante: payload.comprobante,
     });
     return Response.json(result);
   } catch (error) {

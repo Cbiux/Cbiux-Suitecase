@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { SITE } from "@/lib/config";
+import { phoneLooksValid } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,11 +14,12 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type OfferFields = {
   brand: string;
   email: string;
+  phone: string;
   proposal: string;
   note: string;
 };
 
-const empty: OfferFields = { brand: "", email: "", proposal: "", note: "" };
+const empty: OfferFields = { brand: "", email: "", phone: "", proposal: "", note: "" };
 
 function interpolate(template: string, values: Record<string, string>) {
   return template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
@@ -28,6 +30,7 @@ function buildMailto(fields: OfferFields, dict: ReturnType<typeof useLanguage>["
   const lines = [
     `${dict.offer.mailBrand}: ${fields.brand}`,
     `${dict.offer.mailEmail}: ${fields.email}`,
+    `${dict.offer.mailPhone}: ${fields.phone}`,
     `${dict.offer.mailProposal}: ${fields.proposal}`,
   ];
   if (fields.note) lines.push(`${dict.offer.mailNote}: ${fields.note}`);
@@ -50,10 +53,11 @@ export function OfferForm() {
     event.preventDefault();
     const brand = fields.brand.trim();
     const email = fields.email.trim();
+    const phone = fields.phone.trim();
     const proposal = fields.proposal.trim();
     const note = fields.note.trim();
 
-    if (!brand || !email || !proposal) {
+    if (!brand || !email || !phone || !proposal) {
       setError(dict.offer.required);
       return;
     }
@@ -61,10 +65,14 @@ export function OfferForm() {
       setError(dict.offer.invalidEmail);
       return;
     }
+    if (!phoneLooksValid(phone)) {
+      setError(dict.offer.invalidPhone);
+      return;
+    }
 
     setError("");
     setBusy(true);
-    const payload = { brand, email, proposal, note };
+    const payload = { brand, email, phone, proposal, note };
     try {
       await fetch("/api/offer", {
         method: "POST",
@@ -140,6 +148,25 @@ export function OfferForm() {
               maxLength={120}
               value={fields.email}
               onChange={(e) => update("email", e.target.value)}
+              className="min-h-11 bg-card"
+              aria-required="true"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="offer-phone">
+              {dict.offer.phone} <span aria-hidden="true">*</span>
+            </Label>
+            <Input
+              id="offer-phone"
+              name="phone"
+              type="tel"
+              required
+              autoComplete="tel"
+              inputMode="tel"
+              maxLength={20}
+              value={fields.phone}
+              onChange={(e) => update("phone", e.target.value)}
+              placeholder={dict.offer.phoneHint}
               className="min-h-11 bg-card"
               aria-required="true"
             />

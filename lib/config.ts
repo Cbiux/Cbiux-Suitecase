@@ -8,6 +8,9 @@ export const SITE = {
   email: "jsebascp04@gmail.com",
   telegram: "cbiux",
   telegramUrl: "https://t.me/cbiux",
+  phone: "84358038",
+  phoneDisplay: "8435 8038",
+  whatsappUrl: "https://wa.me/50684358038",
 } as const;
 
 export const PAYMENT_DEFAULTS = {

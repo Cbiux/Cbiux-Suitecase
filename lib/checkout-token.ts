@@ -5,6 +5,7 @@ export type CheckoutGrant = {
   positionId: number;
   brand: string;
   email: string;
+  phone?: string;
   exp: number;
 };
 
@@ -16,6 +17,7 @@ export function issueCheckoutGrant(input: {
   positionId: number;
   brand: string;
   email: string;
+  phone?: string;
   hours?: number;
 }) {
   const minutes = input.hours ? input.hours * 60 : RESERVATION_MINUTES;
@@ -23,6 +25,7 @@ export function issueCheckoutGrant(input: {
     positionId: input.positionId,
     brand: input.brand.trim(),
     email: input.email.trim(),
+    phone: input.phone?.trim() ?? "",
     exp: Date.now() + minutes * 60_000,
   };
   const body = Buffer.from(JSON.stringify(payload)).toString("base64url");

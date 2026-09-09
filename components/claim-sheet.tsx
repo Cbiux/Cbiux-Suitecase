@@ -10,11 +10,13 @@ import { compressReceipt } from "@/lib/compress-receipt";
 import { ARTWORK_ACCEPT, SITE } from "@/lib/config";
 import { padSpot } from "@/lib/positions";
 import { formatMoney } from "@/lib/currency";
+import { phoneLooksValid } from "@/lib/phone";
 import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { useCurrency } from "./currency-provider";
 import { FileAttachButton } from "./file-attach";
+import { CoordContacts } from "./coord-contacts";
 import { spotOwnerLabel } from "@/lib/spot-copy";
 
 type Step = "detail" | "pay" | "success";
@@ -49,6 +51,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const [step, setStep] = useState<Step>("detail");
   const [brandName, setBrandName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState<PaymentNetwork>("sinpe");
   const [txHash, setTxHash] = useState("");
   const [sinpeRef, setSinpeRef] = useState("");
@@ -123,6 +126,10 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
       setStatus(dict.claim.needArtwork);
       return;
     }
+    if (!phoneLooksValid(phone)) {
+      setStatus(dict.claim.needPhone);
+      return;
+    }
     setBusy(true);
     setStatus("");
     try {
@@ -133,19 +140,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
           positionId: selected.id,
           brandName,
           email,
+          phone,
           logo,
         }),
       });
       const json = await response.json();
-      if (!response.ok) {
-        if (json.error === "RESERVED" && currentGrant()) {
-          if (wallets) await makeQr("sinpe", wallets);
-          setStep("pay");
-          await refresh();
-          return;
-        }
-        throw new Error(json.error);
-      }
+      if (!response.ok) throw new Error(json.error);
       rememberGrant(selected.id, json.recoveryToken);
       setMemo(json.memo);
       if (json.wallets) await makeQr("sinpe", json.wallets);
@@ -185,9 +185,20 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
     }
   }
 
+  function appendReceipt(form: FormData) {
+    if (!comprobante) return;
+    const blob = dataUrlToBlob(comprobante);
+    form.append(
+      "comprobante",
+      blob,
+      `${receiptName.replace(/\.[^.]+$/, "") || "comprobante"}.jpg`,
+    );
+  }
+
   function payError(code: string) {
     if (code === "MISSING_FIELDS") return dict.claim.needBrand;
     if (code === "MISSING_ARTWORK") return dict.claim.needArtwork;
+    if (code === "MISSING_PHONE") return dict.claim.needPhone;
     if (code === "SOLD") return dict.claim.soldNote;
     if (code === "RESERVED") return dict.claim.heldNote;
     if (code === "BAD_TOKEN" || code === "NOT_RESERVED") return dict.claim.payExpired;
@@ -231,12 +242,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
     setBusy(true);
     setStatus("");
     try {
-      const blob = dataUrlToBlob(comprobante);
       const form = new FormData();
       form.append("positionId", String(selected.id));
       form.append("recoveryToken", token);
       form.append("reference", sinpeRef);
-      form.append("comprobante", blob, `${receiptName.replace(/\.[^.]+$/, "") || "comprobante"}.jpg`);
+      appendReceipt(form);
+      if (logo) form.append("logo", logo);
       const response = await fetch("/api/sinpe", {
         method: "POST",
         body: form,
@@ -256,18 +267,24 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
 
   async function verify(event: React.FormEvent) {
     event.preventDefault();
+    const token = currentGrant();
+    if (!token) {
+      setStatus(dict.claim.payExpired);
+      return;
+    }
     setBusy(true);
     setStatus("");
     try {
+      const form = new FormData();
+      form.append("positionId", String(selected.id));
+      form.append("recoveryToken", token);
+      form.append("txHash", txHash.trim());
+      form.append("network", network);
+      if (logo) form.append("logo", logo);
+      appendReceipt(form);
       const response = await fetch("/api/verify", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          positionId: selected.id,
-          recoveryToken: currentGrant(),
-          txHash,
-          network,
-        }),
+        body: form,
       });
       const json = await response.json();
       if (!response.ok) throw new Error(json.error);
@@ -392,6 +409,20 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="company-phone">{dict.claim.phone}</Label>
+              <Input
+                id="company-phone"
+                type="tel"
+                required
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder={dict.claim.phoneHint}
+                maxLength={20}
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
             <FileAttachButton
               id="artwork"
               label={dict.claim.attachLogo}
@@ -402,7 +433,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
               previewUrl={logo}
               onFile={onFile}
             />
-            <Button type="submit" className="w-full rounded-full" disabled={busy || !logo}>
+            <Button type="submit" className="w-full rounded-full" disabled={busy || !logo || !phoneLooksValid(phone)}>
               {busy ? dict.claim.preparing : dict.claim.continue}
             </Button>
           </form>
@@ -415,6 +446,9 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
                 {dict.claim.payTitle}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">{dict.claim.payBody}</p>
+            <div className="mt-3">
+              <CoordContacts label={dict.claim.coordHelp} />
+            </div>
             </div>
             <div className="grid grid-cols-1 gap-2">
               {(
@@ -463,7 +497,9 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
               >
                 COPY
               </button>
-              <p className="mt-3 font-mono text-[11px] text-primary">MEMO {memo}</p>
+              {network === "sinpe" && memo ? (
+                <p className="mt-3 font-mono text-[11px] text-primary">MEMO {memo}</p>
+              ) : null}
             </div>
             {network === "sinpe" ? (
               sinpeSent ? (
@@ -509,6 +545,15 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
                   onChange={(e) => setTxHash(e.target.value)}
                   placeholder={network === "evm" ? "0x…" : "stellar hash"}
                 />
+                <FileAttachButton
+                  id="tx-receipt"
+                  label={dict.claim.attachTxReceipt}
+                  hint={dict.claim.txReceiptHint}
+                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                  fileName={receiptName}
+                  previewUrl={comprobante}
+                  onFile={(file) => void onReceipt(file)}
+                />
                 <p className="text-xs text-muted-foreground">{dict.claim.demoNote}</p>
                 <Button type="submit" className="w-full rounded-full" disabled={busy}>
                   {busy ? dict.claim.verifying : dict.claim.verify}
@@ -534,6 +579,15 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
             ) : (
               <p className="text-sm text-muted-foreground">{dict.claim.pendingBody}</p>
             )}
+            {comprobante ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={comprobante}
+                alt=""
+                className="max-h-36 rounded-xl border border-border object-contain"
+              />
+            ) : null}
+            <CoordContacts label={dict.claim.coordHelp} />
             <form className="space-y-3" onSubmit={publish}>
               <FileAttachButton
                 id="logo"

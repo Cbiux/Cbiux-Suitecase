@@ -23,6 +23,7 @@ const emptyState = (): PositionState => ({
   status: "available",
   sponsor: "",
   email: "",
+  phone: "",
   logo: "",
   reservedAt: "",
   reservedUntil: "",
@@ -48,6 +49,7 @@ function hydrateOffer(offer: OfferRecord): OfferRecord {
     ...offer,
     status: offer.status ?? "pending",
     note: offer.note ?? "",
+    phone: offer.phone ?? "",
   };
 }
 
@@ -87,17 +89,13 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 function expireReservations(store: StoreShape) {
-  const now = Date.now();
   let changed = false;
   for (const state of Object.values(store.positions)) {
     if (state.status !== "reserved") continue;
-    // Pedidos reales (marca, diseño o comprobante) se quedan hasta /admin.
-    if (state.sponsor || state.logo || state.comprobante) continue;
-    const until = state.reservedUntil ? Date.parse(state.reservedUntil) : 0;
-    if (until && until <= now) {
-      Object.assign(state, emptyState());
-      changed = true;
-    }
+    // Solo hay reserva real cuando ya mandaron comprobante. El resto se libera.
+    if (state.comprobante) continue;
+    Object.assign(state, emptyState());
+    changed = true;
   }
   return changed;
 }
@@ -121,6 +119,7 @@ export function hydratePositions(
       ...catalog,
       ...state,
       comprobante: options.includePrivate ? state.comprobante : "",
+      phone: options.includePrivate ? state.phone : "",
       name: copy.name,
       description: copy.description,
       benefits: [...copy.benefits],
@@ -154,51 +153,36 @@ export async function startCheckout(input: {
   positionId: number;
   brandName: string;
   email?: string;
+  phone?: string;
   logo?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
-    expireReservations(store);
+    if (expireReservations(store)) await persist(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
     const state = store.positions[String(catalog.id)];
     if (state.status === "sold") throw new Error("SOLD");
     if (state.status === "reserved") throw new Error("RESERVED");
 
+    const logo = input.logo ? parseArtworkDataUrl(input.logo) : "";
+    if (!logo) throw new Error("MISSING_ARTWORK");
     const recoveryToken = issueCheckoutGrant({
       positionId: catalog.id,
       brand: input.brandName,
       email: input.email ?? "",
+      phone: input.phone ?? "",
       hours: SINPE_HOLD_HOURS,
     });
-    const checkoutToken = token();
-    const reservedAt = new Date().toISOString();
     const reservedUntil = new Date(
       Date.now() + SINPE_HOLD_HOURS * 60 * 60_000,
     ).toISOString();
-    const logo = input.logo ? parseArtworkDataUrl(input.logo) : "";
-
-    store.positions[String(catalog.id)] = {
-      ...state,
-      status: "reserved",
-      sponsor: input.brandName.trim(),
-      email: input.email?.trim() ?? "",
-      logo,
-      reservedAt,
-      reservedUntil,
-      recoveryToken,
-      checkoutToken,
-      txHash: "",
-      network: "",
-      comprobante: "",
-    };
-    await persist(store);
 
     return {
       positionId: catalog.id,
       price: catalog.price,
       recoveryToken,
-      checkoutToken,
+      checkoutToken: token(),
       reservedUntil,
       wallets: getWallets(),
       logo,
@@ -212,18 +196,24 @@ export async function verifyPayment(input: {
   txHash: string;
   network: PaymentNetwork;
   mode: "stub" | "indexer";
+  logo?: string;
+  comprobante?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
     expireReservations(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
-    const state = restoreReservation(store, catalog.id, input.recoveryToken);
+    const state = restoreReservation(store, catalog.id, input.recoveryToken, {
+      logo: input.logo,
+      allowCreate: true,
+    });
 
     if (state.status === "sold") {
       return { alreadySold: true, positionId: catalog.id };
     }
     if (state.status !== "reserved") throw new Error("NOT_RESERVED");
+    // USDC verificado = pago completo; el spot pasa a vendido, no a reserva suelta.
 
     const reused = store.payments.some(
       (payment) => payment.txHash.toLowerCase() === input.txHash.toLowerCase(),
@@ -242,13 +232,19 @@ export async function verifyPayment(input: {
       mode: input.mode,
     };
 
+    const receipt = input.comprobante?.trim()
+      ? parseComprobanteDataUrl(input.comprobante).dataUrl
+      : state.comprobante;
+
     store.positions[String(catalog.id)] = {
       ...state,
       status: "sold",
+      logo: input.logo ? parseArtworkDataUrl(input.logo) : state.logo,
       reservedUntil: "",
       checkoutToken: "",
       txHash: input.txHash,
       network: input.network,
+      comprobante: receipt,
     };
     store.payments.push(record);
     await persist(store);
@@ -261,21 +257,28 @@ export async function submitSinpe(input: {
   recoveryToken: string;
   reference?: string;
   comprobante: string;
+  logo?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
     expireReservations(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
-    const state = restoreReservation(store, catalog.id, input.recoveryToken);
+    if (!input.comprobante?.trim()) throw new Error("MISSING_COMPROBANTE");
+    const state = restoreReservation(store, catalog.id, input.recoveryToken, {
+      logo: input.logo,
+      allowCreate: true,
+    });
     if (state.status === "sold") throw new Error("SOLD");
     if (state.status !== "reserved") throw new Error("NOT_RESERVED");
-    if (!input.comprobante?.trim()) throw new Error("MISSING_COMPROBANTE");
     const receipt = parseComprobanteDataUrl(input.comprobante);
+    const logo = input.logo ? parseArtworkDataUrl(input.logo) : state.logo;
+    if (!logo) throw new Error("MISSING_ARTWORK");
 
     store.positions[String(catalog.id)] = {
       ...state,
       status: "reserved",
+      logo,
       network: "sinpe",
       txHash: input.reference?.trim() ?? "",
       comprobante: receipt.dataUrl,
@@ -379,14 +382,16 @@ export async function adminUpdateSpot(input: {
 export async function saveOffer(input: {
   brand: string;
   email: string;
+  phone: string;
   proposal: string;
   note?: string;
 }): Promise<OfferRecord> {
   const brand = input.brand.trim();
   const email = input.email.trim();
+  const phone = input.phone.trim();
   const proposal = input.proposal.trim();
   const note = input.note?.trim() ?? "";
-  if (!brand || !email || !proposal) {
+  if (!brand || !email || !phone || !proposal) {
     throw new Error("MISSING_FIELDS");
   }
   return withLock(async () => {
@@ -397,6 +402,7 @@ export async function saveOffer(input: {
       createdAt: new Date().toISOString(),
       brand,
       email,
+      phone,
       proposal,
       note,
       status: "pending",
@@ -422,6 +428,7 @@ function restoreReservation(
   store: StoreShape,
   positionId: number,
   recoveryToken: string,
+  extras: { logo?: string; allowCreate?: boolean } = {},
 ): PositionState {
   const state = store.positions[String(positionId)];
   if (!state) throw new Error("UNKNOWN_POSITION");
@@ -440,12 +447,16 @@ function restoreReservation(
     throw new Error(state.status === "reserved" ? "RESERVED" : "BAD_TOKEN");
   }
   if (state.status === "reserved") throw new Error("RESERVED");
+  if (!extras.allowCreate) throw new Error("NOT_RESERVED");
 
+  const logo = extras.logo ? parseArtworkDataUrl(extras.logo) : state.logo;
   store.positions[String(positionId)] = {
     ...state,
     status: "reserved",
     sponsor: grant.brand,
     email: grant.email,
+    phone: grant.phone ?? state.phone,
+    logo,
     reservedAt: state.reservedAt || new Date().toISOString(),
     reservedUntil: new Date(grant.exp).toISOString(),
     recoveryToken,

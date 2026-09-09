@@ -6,6 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { LivePosition, OfferRecord, OfferStatus, PaymentRecord, SpotStatus } from "@/lib/types";
 import { padSpot } from "@/lib/positions";
+import { SITE } from "@/lib/config";
+import { whatsappHref } from "@/lib/phone";
+import { AdminArtwork } from "./admin-artwork";
+import { CoordContacts } from "./coord-contacts";
 import { ThemeToggle } from "./theme-toggle";
 
 type AdminData = {
@@ -42,7 +46,7 @@ export function AdminLogin() {
         <ThemeToggle />
       </div>
       <p className="mono-label text-primary">admin</p>
-      <h1 className="mt-3 text-3xl font-semibold tracking-tight">Cbiux · Suitecase</h1>
+      <h1 className="mt-3 text-3xl font-semibold tracking-tight">Cbiux · Suitcase</h1>
       <p className="mt-2 text-sm text-muted-foreground">
         Entrá con la contraseña para ver solicitudes y aceptarlas.
       </p>
@@ -76,6 +80,10 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
   const pendingOffers = useMemo(
     () => data.offers.filter((offer) => offer.status === "pending"),
     [data.offers],
+  );
+  const artworkSpots = useMemo(
+    () => data.positions.filter((spot) => Boolean(spot.logo)),
+    [data.positions],
   );
 
   async function load() {
@@ -114,8 +122,11 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Solicitudes</h1>
           <p className="mt-2 max-w-[52ch] text-sm text-muted-foreground">
             Revisá reservas, comprobantes SINPE y ofertas libres. Aceptá para marcar vendido, o rechazá para
-            liberar el spot.
+            liberar el spot. Para coordinar diseño o pago: WhatsApp {SITE.phoneDisplay} o Telegram @{SITE.telegram}.
           </p>
+          <div className="mt-3">
+            <CoordContacts compact />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -140,6 +151,49 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
       </div>
 
       <section className="mt-10">
+        <h2 className="text-xl font-medium">Logos y comprobantes</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Tocá <strong>Descargar logo</strong> o <strong>Descargar comprobante</strong> para guardar el archivo.
+        </p>
+        {artworkSpots.length === 0 ? (
+          <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            Todavía no hay logos. Cuando alguien reserve y suba el diseño, aparece acá.
+          </p>
+        ) : (
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            {artworkSpots.map((spot) => (
+              <article key={`art-${spot.id}`} className="rounded-2xl border border-border bg-card p-4">
+                <p className="mono-label text-primary">posición {padSpot(spot.id)}</p>
+                <p className="mt-1 truncate text-lg font-medium">{spot.sponsor || spot.name}</p>
+                {spot.phone ? (
+                  <a
+                    href={whatsappHref(spot.phone)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-1 block truncate text-sm text-primary underline-offset-2 hover:underline"
+                  >
+                    WhatsApp {spot.phone}
+                  </a>
+                ) : null}
+                <div className="mt-4 space-y-4">
+                  <AdminArtwork positionId={spot.id} sponsor={spot.sponsor} src={spot.logo} size="lg" />
+                  {spot.comprobante ? (
+                    <AdminArtwork
+                      positionId={spot.id}
+                      sponsor={spot.sponsor}
+                      src={spot.comprobante}
+                      kind="comprobante"
+                      size="lg"
+                    />
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-12">
         <h2 className="text-xl font-medium">Bandeja</h2>
         {pendingSpots.length === 0 && pendingOffers.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
@@ -160,7 +214,24 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                       {spot.sponsor || "Sin marca"} · ${spot.price}
                       {spot.network ? ` · ${spot.network.toUpperCase()}` : ""}
                     </p>
-                    {spot.email ? <p className="mt-1 text-sm text-muted-foreground">{spot.email}</p> : null}
+                    {spot.email ? (
+                      <a
+                        href={`mailto:${spot.email}?subject=${encodeURIComponent(`Cbiux suitcase · posición ${padSpot(spot.id)}`)}`}
+                        className="mt-1 block text-sm text-primary underline-offset-2 hover:underline"
+                      >
+                        {spot.email}
+                      </a>
+                    ) : null}
+                    {spot.phone ? (
+                      <a
+                        href={whatsappHref(spot.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block text-sm text-primary underline-offset-2 hover:underline"
+                      >
+                        WhatsApp {spot.phone}
+                      </a>
+                    ) : null}
                     <p className="mt-2 font-mono text-[11px] text-[#6b4f00]">
                       {spot.reservedAt ? `Reservó ${formatWhen(spot.reservedAt)}` : "Reserva pendiente de confirmar"}
                     </p>
@@ -182,27 +253,25 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                     </button>
                   </div>
                 </div>
-                <div className="mt-4 flex flex-wrap gap-4">
+                <div className="mt-4 flex flex-wrap items-start gap-6">
                   {spot.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <AdminArtwork
+                      positionId={spot.id}
+                      sponsor={spot.sponsor}
                       src={spot.logo}
-                      alt={`Diseño ${padSpot(spot.id)}`}
-                      className="h-20 w-20 rounded-xl border border-border bg-white object-contain p-1"
+                      size="lg"
                     />
-                  ) : null}
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Sin logo adjunto.</p>
+                  )}
                   {spot.comprobante ? (
-                    <a href={spot.comprobante} target="_blank" rel="noreferrer" className="block w-fit">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={spot.comprobante}
-                        alt={`Comprobante ${padSpot(spot.id)}`}
-                        className="h-28 w-28 rounded-xl border border-border object-cover"
-                      />
-                      <span className="mt-1 block font-mono text-[9px] tracking-[0.08em] text-primary">
-                        ABRIR COMPROBANTE
-                      </span>
-                    </a>
+                    <AdminArtwork
+                      positionId={spot.id}
+                      sponsor={spot.sponsor}
+                      src={spot.comprobante}
+                      kind="comprobante"
+                      size="lg"
+                    />
                   ) : (
                     <p className="text-xs text-muted-foreground">
                       {spot.network === "sinpe" ? "SINPE sin captura todavía." : "Esperando pago o comprobante."}
@@ -218,6 +287,16 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                     <p className="mono-label text-primary">oferta libre</p>
                     <h3 className="mt-1 text-lg font-medium">{offer.brand}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">{offer.email}</p>
+                    {offer.phone ? (
+                      <a
+                        href={whatsappHref(offer.phone)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block text-sm text-primary underline-offset-2 hover:underline"
+                      >
+                        WhatsApp {offer.phone}
+                      </a>
+                    ) : null}
                     <p className="mt-3 text-sm">{offer.proposal}</p>
                     {offer.note ? <p className="mt-2 text-sm text-muted-foreground">{offer.note}</p> : null}
                   </div>
@@ -284,7 +363,8 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
                   {offer.status}
                 </span>
                 {" · "}
-                {offer.brand} · {offer.email} · {offer.proposal}
+                {offer.brand} · {offer.email}
+                {offer.phone ? ` · ${offer.phone}` : ""} · {offer.proposal}
               </p>
             ))
           )}
@@ -380,14 +460,31 @@ function AdminRow({
           value={sponsor}
           onChange={(e) => setSponsor(e.target.value)}
         />
+        {spot.phone ? (
+          <a
+            href={whatsappHref(spot.phone)}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 block text-xs text-primary underline-offset-2 hover:underline"
+          >
+            {spot.phone}
+          </a>
+        ) : null}
       </td>
       <td className="p-3">
-        <input
-          className="w-40 rounded-lg border border-border bg-card px-2 py-1"
-          value={logo}
-          onChange={(e) => setLogo(e.target.value)}
-          placeholder="https://… o data:"
-        />
+        <div className="flex flex-col gap-2">
+          {spot.logo ? (
+            <AdminArtwork positionId={spot.id} sponsor={spot.sponsor || sponsor} src={spot.logo} size="sm" />
+          ) : (
+            <p className="text-xs text-muted-foreground">Sin logo</p>
+          )}
+          <input
+            className="w-40 rounded-lg border border-border bg-card px-2 py-1"
+            value={logo}
+            onChange={(e) => setLogo(e.target.value)}
+            placeholder="https://… o data:"
+          />
+        </div>
       </td>
       <td className="p-3">
         <div className="flex flex-wrap gap-2">
@@ -398,6 +495,15 @@ function AdminRow({
           >
             SAVE
           </button>
+          {spot.logo ? (
+            <a
+              href={`/api/admin/artwork/${spot.id}`}
+              download
+              className="rounded-md bg-primary px-2 py-1 font-mono text-[10px] font-semibold text-primary-foreground"
+            >
+              DESCARGAR LOGO
+            </a>
+          ) : null}
           <button
             type="button"
             className="rounded-md border border-border px-2 py-1 font-mono text-[10px]"

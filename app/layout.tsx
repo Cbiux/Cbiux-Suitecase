@@ -16,7 +16,7 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cbiux-suitecase.vercel.app"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://cbiux-suitcase.vercel.app"),
   title: "Poné tu marca en mi ruta a Europa e India | Cbiux",
   description:
     "22 posiciones en la maleta de cabina de Sebastián (Cbiux), 55×40×20 cm, rumbo a Compile Amsterdam, Europa y Devcon India. Vlog diario de todo el trip. Desde $45.",

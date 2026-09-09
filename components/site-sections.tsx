@@ -238,6 +238,9 @@ export function Footer() {
         <a href={SITE.telegramUrl} target="_blank" rel="noreferrer">
           Telegram
         </a>
+        <a href={SITE.whatsappUrl} target="_blank" rel="noreferrer">
+          WhatsApp
+        </a>
         <a href="/admin">Admin</a>
       </nav>
       <span>{dict.footer.trip}</span>

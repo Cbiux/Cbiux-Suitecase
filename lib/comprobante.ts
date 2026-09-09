@@ -41,3 +41,12 @@ export async function fileToDataUrl(file: File) {
   return `data:${mime};base64,${bytes.toString("base64")}`;
 }
 
+export async function comprobanteFromForm(form: FormData, key = "comprobante") {
+  const value = form.get(key);
+  if (value instanceof File) {
+    if (!value.size) return "";
+    return fileToDataUrl(value);
+  }
+  return typeof value === "string" ? value.trim() : "";
+}
+

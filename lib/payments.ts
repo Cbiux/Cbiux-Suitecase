@@ -29,7 +29,7 @@ export function validateTxHash(txHash: string, network: PaymentNetwork) {
  * TODO for on-chain:
  * - EVM / Base: Alchemy / Basescan, USDC 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913,
  *   to == NEXT_PUBLIC_USDC_BASE_ADDRESS, value >= price * 1e6.
- * - Stellar: Horizon, USDC issuer, memo CBIUX-XX, destination ==
+ * - Stellar: Horizon, USDC issuer, destination ==
  *   NEXT_PUBLIC_USDC_STELLAR_ADDRESS.
  * - Solana (optional): only if NEXT_PUBLIC_USDC_SOLANA_ADDRESS is set.
  */
