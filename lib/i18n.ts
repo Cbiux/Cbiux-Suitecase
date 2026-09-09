@@ -7,6 +7,7 @@ export const copy = {
       "22 posiciones en la maleta de cabina de Sebastián (Cbiux), 55×40×20 cm, rumbo a Compile Amsterdam, Europa y Devcon India. Vlog diario de todo el trip. Desde $45.",
     nav: {
       positions: "POSICIONES",
+      share: "APOYO",
       included: "QUÉ INCLUYE",
       vlog: "VLOG",
       how: "CÓMO FUNCIONA",
@@ -86,6 +87,20 @@ export const copy = {
       sold: "VENDIDA",
       boughtBy: "Comprado por {brand}",
       reservedBy: "Reservado por {brand}",
+    },
+    share: {
+      kicker: "para redes",
+      title: "Estoy apoyando este viaje",
+      intro:
+        "Si tu marca ya viaja en la maleta, descargá la imagen y subila a Instagram u otras redes.",
+      thanks: "Post 1 · agradecimiento",
+      spot: "Post 2 · vista de la maleta",
+      download: "Descargar imagen",
+      copying: "Armando PNG…",
+      copy: "Copiar texto del post",
+      copied: "Texto copiado",
+      error: "No se pudo armar la imagen. Probá de nuevo.",
+      preview: "Armando preview…",
     },
     orbit: {
       hint: "Clic en un número para acercarte a esa posición",
@@ -194,7 +209,9 @@ export const copy = {
       kicker: "el recorrido",
       title: "Costa Rica, Europa, India y de vuelta",
       body: "Un globo con cada parada de la maleta. San José, Ámsterdam, Alemania, Bélgica, Madrid, Francia, Italia, Lisboa, Dubái, Mumbai, y el regreso por Dubái y Madrid.",
-      hint: "Arrastrá el globo · tocá una parada",
+      hint: "Arrastrá · zoom con la rueda · tocá una parada",
+      zoomIn: "Acercar el mundo",
+      zoomOut: "Alejar el mundo",
       play: "RECORRER RUTA",
       pause: "PAUSAR",
       stops: [
@@ -628,6 +645,7 @@ export const copy = {
       "22 spots on Sebastián (Cbiux)'s carry-on cabin bag, 55×40×20 cm, from Costa Rica to Compile, Europe and Devcon India. Daily vlog for the whole trip. From $45.",
     nav: {
       positions: "POSITIONS",
+      share: "SUPPORT",
       included: "WHAT YOU GET",
       vlog: "VLOG",
       how: "HOW IT WORKS",
@@ -706,6 +724,20 @@ export const copy = {
       sold: "SOLD",
       boughtBy: "Bought by {brand}",
       reservedBy: "Reserved by {brand}",
+    },
+    share: {
+      kicker: "for social",
+      title: "I'm backing this trip",
+      intro:
+        "If your brand already has a spot on the bag, download the image and post it on Instagram or anywhere else.",
+      thanks: "Post 1 · thank you",
+      spot: "Post 2 · suitcase view",
+      download: "Download image",
+      copying: "Building PNG…",
+      copy: "Copy post text",
+      copied: "Text copied",
+      error: "Couldn't build the image. Try again.",
+      preview: "Building preview…",
     },
     orbit: {
       hint: "Click a number to zoom into that spot",
@@ -814,7 +846,9 @@ export const copy = {
       kicker: "the route",
       title: "Costa Rica, Europe, India and back",
       body: "A globe with every stop on the suitcase. San José, Amsterdam, Germany, Belgium, Madrid, France, Italy, Lisbon, Dubai, Mumbai, then back through Dubai and Madrid.",
-      hint: "Drag the globe · tap a stop",
+      hint: "Drag · scroll to zoom · tap a stop",
+      zoomIn: "Zoom in",
+      zoomOut: "Zoom out",
       play: "PLAY ROUTE",
       pause: "PAUSE",
       stops: [

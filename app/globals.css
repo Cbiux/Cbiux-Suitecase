@@ -342,6 +342,7 @@ h2.anim-headline {
 
 .route-globe-canvas {
   touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .route-globe-canvas::after {

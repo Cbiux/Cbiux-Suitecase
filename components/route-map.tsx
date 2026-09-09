@@ -135,6 +135,8 @@ export function RouteMap() {
               labels={labels}
               activeIndex={activeIndex}
               reduceMotion={reduceMotion}
+              zoomInLabel={dict.route.zoomIn}
+              zoomOutLabel={dict.route.zoomOut}
               onSelectPlace={selectPlace}
             />
           </div>

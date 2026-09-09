@@ -33,6 +33,8 @@ type TripGlobeProps = {
   labels: GlobeLabel[];
   activeIndex: number | null;
   reduceMotion: boolean;
+  zoomInLabel: string;
+  zoomOutLabel: string;
   onSelectPlace: (id: PlaceId) => void;
 };
 
@@ -43,7 +45,9 @@ type GlobeApi = GlobeMethods & {
 };
 
 const OVERVIEW = { lat: 24, lng: -8, altitude: 2.05 };
-const CLOSE_ALTITUDE = 1.42;
+const CLOSE_ALTITUDE = 0.88;
+const MIN_ALTITUDE = 0.42;
+const MAX_ALTITUDE = 2.55;
 const PRIMARY_LABELS = new Set<PlaceId>(["sjo", "ams", "mad", "lis", "dxb", "bom"]);
 
 function findGlobeMaterial(globe: GlobeMethods): MeshPhongMaterial | null {
@@ -65,6 +69,8 @@ export default function TripGlobe({
   labels,
   activeIndex,
   reduceMotion,
+  zoomInLabel,
+  zoomOutLabel,
   onSelectPlace,
 }: TripGlobeProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -160,13 +166,47 @@ export default function TripGlobe({
     if (!ready || !globe) return;
 
     const controls = globe.controls();
-    controls.enableZoom = false;
+    const radius = globe.getGlobeRadius();
+    controls.enableZoom = true;
     controls.enablePan = false;
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
+    controls.zoomSpeed = 0.7;
+    controls.minDistance = radius * (1 + MIN_ALTITUDE);
+    controls.maxDistance = radius * (1 + MAX_ALTITUDE);
     controls.autoRotate = !reduceMotion && activeIndex == null;
     controls.autoRotateSpeed = 0.32;
+
+    const stopSpin = () => {
+      controls.autoRotate = false;
+    };
+    controls.addEventListener("start", stopSpin);
+    return () => {
+      controls.removeEventListener("start", stopSpin);
+    };
   }, [ready, reduceMotion, activeIndex]);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const nudgeZoom = useCallback(
+    (factor: number) => {
+      const globe = globeRef.current;
+      if (!globe) return;
+      const pov = globe.pointOfView();
+      const next = Math.min(MAX_ALTITUDE, Math.max(MIN_ALTITUDE, pov.altitude * factor));
+      globe.controls().autoRotate = false;
+      globe.pointOfView({ ...pov, altitude: next }, reduceMotion ? 0 : 280);
+    },
+    [reduceMotion],
+  );
 
   useEffect(() => {
     const globe = globeRef.current;
@@ -377,6 +417,24 @@ export default function TripGlobe({
           ringRepeatPeriod={1200}
         />
       ) : null}
+      <div className="pointer-events-none absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+        <button
+          type="button"
+          aria-label={zoomInLabel}
+          onClick={() => nudgeZoom(0.72)}
+          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#070b18]/70 font-mono text-lg font-semibold text-[#f7f7f4] backdrop-blur-md"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          aria-label={zoomOutLabel}
+          onClick={() => nudgeZoom(1.32)}
+          className="pointer-events-auto inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#070b18]/70 font-mono text-lg font-semibold text-[#f7f7f4] backdrop-blur-md"
+        >
+          −
+        </button>
+      </div>
     </div>
   );
 }

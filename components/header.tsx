@@ -27,6 +27,9 @@ export function Header() {
           <a className="mono-label hover:text-foreground" href="#positions">
             {dict.nav.positions}
           </a>
+          <a className="mono-label hover:text-foreground" href="#share">
+            {dict.nav.share}
+          </a>
           <a className="mono-label hover:text-foreground" href="#offer">
             {dict.nav.offer}
           </a>

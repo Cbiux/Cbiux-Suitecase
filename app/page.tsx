@@ -6,6 +6,7 @@ import { LanguageProvider } from "@/components/language-provider";
 import { CurrencyProvider } from "@/components/currency-provider";
 import { OfferForm } from "@/components/offer-form";
 import { PositionsBoard } from "@/components/positions-board";
+import { ShareSupport } from "@/components/share-support";
 import { StickyCta } from "@/components/sticky-cta";
 import {
   Addons,
@@ -31,6 +32,7 @@ export default async function Home() {
         <main id="main" className="pb-24 md:pb-0">
           <Hero />
           <PositionsBoard />
+          <ShareSupport />
           <OfferForm />
           <WhatYouGet />
           <DailyVlog />
