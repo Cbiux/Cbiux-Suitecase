@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FACE_ORDER, padSpot } from "@/lib/positions";
 import type { Face, LivePosition } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
@@ -133,63 +133,32 @@ export function SuitcasePhotoStage() {
   );
 }
 
-const HERO_FACE_MS = 4200;
-
-function reduceMotionSubscribe(onStoreChange: () => void) {
-  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-  media.addEventListener("change", onStoreChange);
-  return () => media.removeEventListener("change", onStoreChange);
-}
+const HERO_FACE_MS = 3200;
 
 export function HeroSuitcasePreview() {
   const { dict } = useLanguage();
   const [face, setFace] = useState<Face>("front");
-  const [paused, setPaused] = useState(false);
-  const resumeAt = useRef<number>(0);
-  const reduceMotion = useSyncExternalStore(
-    reduceMotionSubscribe,
-    () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
-    () => false,
-  );
+  const holdUntil = useRef(0);
 
   useEffect(() => {
-    if (paused || reduceMotion) return;
     const timer = window.setInterval(() => {
+      if (Date.now() < holdUntil.current) return;
       setFace((current) => FACE_ORDER[(FACE_ORDER.indexOf(current) + 1) % FACE_ORDER.length]);
     }, HERO_FACE_MS);
     return () => window.clearInterval(timer);
-  }, [paused, reduceMotion]);
-
-  useEffect(() => {
-    return () => window.clearTimeout(resumeAt.current);
   }, []);
 
   function pickFace(item: Face) {
     setFace(item);
-    setPaused(true);
-    window.clearTimeout(resumeAt.current);
-    resumeAt.current = window.setTimeout(() => setPaused(false), 8000);
+    holdUntil.current = Date.now() + 10000;
   }
 
   return (
     <div className="hero-suitcase-stage relative mx-auto w-full max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]">
-      <div className="relative">
-        {FACE_ORDER.map((item) => {
-          const active = item === face;
-          return (
-            <div
-              key={item}
-              className={`transition-opacity duration-700 ease-out ${
-                active ? "relative opacity-100" : "pointer-events-none absolute inset-0 opacity-0"
-              }`}
-              style={reduceMotion ? { transition: "none" } : undefined}
-              aria-hidden={!active}
-              inert={!active}
-            >
-              <SuitcaseView face={item} focus compact chrome={false} />
-            </div>
-          );
-        })}
+      <div className="relative overflow-hidden">
+        <div key={face} className="hero-face-swap">
+          <SuitcaseView face={face} focus compact chrome={false} />
+        </div>
       </div>
       <div className="mt-2 grid grid-cols-4 gap-1">
         {FACE_ORDER.map((item) => {
