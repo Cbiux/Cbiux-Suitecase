@@ -112,7 +112,7 @@ export function SuitcasePhotoStage() {
       </div>
 
       <div
-        className="mt-4 lg:hidden"
+        className="relative mt-4 lg:hidden"
         onTouchStart={(event) => {
           touchX.current = event.changedTouches[0]?.clientX ?? null;
         }}
@@ -122,7 +122,19 @@ export function SuitcasePhotoStage() {
           touchX.current = null;
         }}
       >
-        <SuitcaseView key={activeFace} face={activeFace} focus />
+        {FACE_ORDER.map((face) => {
+          const active = face === activeFace;
+          return (
+            <div
+              key={face}
+              className={active ? "relative" : "pointer-events-none absolute inset-0"}
+              style={{ opacity: active ? 1 : 0 }}
+              aria-hidden={!active}
+            >
+              <SuitcaseView face={face} focus={active} />
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-4 hidden gap-4 lg:grid lg:grid-cols-2 xl:grid-cols-4">
@@ -156,10 +168,20 @@ export function HeroSuitcasePreview() {
 
   return (
     <div className="hero-suitcase-stage relative mx-auto w-full max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]">
-      <div className="relative overflow-hidden">
-        <div key={face} className="hero-face-swap">
-          <SuitcaseView face={face} focus compact chrome={false} />
-        </div>
+      <div className="relative">
+        {FACE_ORDER.map((item) => {
+          const active = item === face;
+          return (
+            <div
+              key={item}
+              className={active ? "relative" : "pointer-events-none absolute inset-0"}
+              style={{ opacity: active ? 1 : 0 }}
+              aria-hidden={!active}
+            >
+              <SuitcaseView face={item} focus compact chrome={false} />
+            </div>
+          );
+        })}
       </div>
       <div className="mt-2 grid grid-cols-4 gap-1">
         {FACE_ORDER.map((item) => {
@@ -197,6 +219,8 @@ function SuitcaseView({
   const { data, selected, selectedId, setSelectedId, setActiveFace, approachPhase } = useInventory();
   const spots = data?.positions.filter((spot) => spot.face === face) ?? [];
   const photo = PHOTOS[face];
+  const bagRef = useRef<HTMLImageElement>(null);
+  const [bagReady, setBagReady] = useState(false);
   const zooming =
     !compact &&
     focus &&
@@ -206,6 +230,33 @@ function SuitcaseView({
   const cx = selected && selected.face === face && photo.mirror ? 100 - rawCx : rawCx;
   const cy = selected && selected.face === face ? selected.y + selected.height / 2 : 50;
   const side = face === "left" || face === "right";
+
+  useEffect(() => {
+    const image = bagRef.current;
+    if (!image) return;
+    let live = true;
+    const finish = () => {
+      if (live) setBagReady(true);
+    };
+    const decode = () => {
+      if (!live || image.naturalWidth < 1) return;
+      if (typeof image.decode === "function") {
+        image.decode().then(finish, finish);
+        return;
+      }
+      finish();
+    };
+    setBagReady(false);
+    if (image.complete && image.naturalWidth > 0) {
+      decode();
+    } else {
+      image.addEventListener("load", decode);
+    }
+    return () => {
+      live = false;
+      image.removeEventListener("load", decode);
+    };
+  }, [photo.src]);
 
   return (
     <figure className={compact ? "m-0" : undefined}>
@@ -220,7 +271,7 @@ function SuitcaseView({
           }`}
           onClick={() => setActiveFace(face)}
         >
-          <div className="relative aspect-[3/4]">
+          <div className="relative isolate aspect-[3/4]">
             <div
               className="absolute inset-0 origin-center will-change-transform"
               style={{
@@ -236,26 +287,34 @@ function SuitcaseView({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
+                  ref={bagRef}
                   src={photo.src}
                   alt={photo.alt}
                   width={side ? 768 : 1168}
                   height={side ? 1024 : 1346}
-                  className="pointer-events-none absolute inset-0 h-full w-full object-contain drop-shadow-[0_18px_30px_rgba(17,17,17,0.18)] dark:drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)]"
-                  style={{ transform: photo.mirror ? "scaleX(-1)" : undefined }}
+                  decoding="async"
+                  fetchPriority="high"
+                  className="pointer-events-none absolute inset-0 z-0 h-full w-full object-contain drop-shadow-[0_18px_30px_rgba(17,17,17,0.18)] dark:drop-shadow-[0_16px_28px_rgba(0,0,0,0.45)]"
+                  style={{
+                    transform: photo.mirror ? "scaleX(-1)" : undefined,
+                    opacity: bagReady ? 1 : 0,
+                  }}
                 />
-                {spots.map((spot, index) => (
-                  <SpotOverlay
-                    key={spot.id}
-                    spot={spot}
-                    mirror={photo.mirror}
-                    active={selectedId === spot.id}
-                    revealIndex={compact && chrome ? index : undefined}
-                    onSelect={() => {
-                      setActiveFace(face);
-                      setSelectedId(spot.id);
-                    }}
-                  />
-                ))}
+                {bagReady
+                  ? spots.map((spot, index) => (
+                      <SpotOverlay
+                        key={spot.id}
+                        spot={spot}
+                        mirror={photo.mirror}
+                        active={selectedId === spot.id}
+                        revealIndex={compact && chrome ? index : undefined}
+                        onSelect={() => {
+                          setActiveFace(face);
+                          setSelectedId(spot.id);
+                        }}
+                      />
+                    ))
+                  : null}
               </div>
             </div>
           </div>

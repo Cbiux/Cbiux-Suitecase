@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { BagPhotoWarmup } from "@/components/bag-photo-warmup";
 import { ThemeProvider } from "@/components/theme-provider";
 import "./globals.css";
 
@@ -47,8 +48,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
+        <link rel="preload" as="image" href="/suitcase-front.png" type="image/png" fetchPriority="high" />
+        <link rel="preload" as="image" href="/suitcase-side.png" type="image/png" />
       </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
+        <BagPhotoWarmup />
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
