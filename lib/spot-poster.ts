@@ -192,9 +192,6 @@ function drawMockup(
   ctx.fillStyle = WHITE;
   ctx.fill();
   drawContained(ctx, logo, target.x + 2, target.y + 2, target.w - 4, target.h - 4);
-  ctx.strokeStyle = "#22c55e";
-  ctx.lineWidth = Math.max(5, Math.min(target.w, target.h) * 0.045);
-  ctx.stroke();
   ctx.restore();
 
   const screen = {
@@ -203,17 +200,6 @@ function drawMockup(
     w: target.w * zoom.scale,
     h: target.h * zoom.scale,
   };
-
-  ctx.save();
-  roundRect(ctx, view.x, view.y, view.w, view.h, 36);
-  ctx.clip();
-  ctx.shadowColor = "rgba(44, 63, 209, 0.55)";
-  ctx.shadowBlur = 32;
-  roundRect(ctx, screen.x, screen.y, screen.w, screen.h, Math.min(22, screen.w * 0.12, screen.h * 0.12));
-  ctx.strokeStyle = BLUE;
-  ctx.lineWidth = 8;
-  ctx.stroke();
-  ctx.restore();
 
   drawSpotBadge(ctx, view, screen, padSpot(catalog.id));
   drawMinimap(ctx, {
