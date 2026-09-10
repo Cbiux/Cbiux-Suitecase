@@ -48,20 +48,6 @@ const OVERVIEW = { lat: 24, lng: -8, altitude: 2.05 };
 const CLOSE_ALTITUDE = 0.88;
 const MIN_ALTITUDE = 0.42;
 const MAX_ALTITUDE = 2.55;
-const PRIMARY_LABELS = new Set<PlaceId>([
-  "sjo",
-  "ams",
-  "bru",
-  "cgn",
-  "pfz",
-  "ber",
-  "prg",
-  "nyn",
-  "mad",
-  "lis",
-  "dxb",
-  "bom",
-]);
 
 function findGlobeMaterial(globe: GlobeMethods): MeshPhongMaterial | null {
   const exposed = globe as GlobeApi;
@@ -126,13 +112,8 @@ export default function TripGlobe({
 
       const dot = document.createElement("span");
       dot.className = "route-globe-dot";
-
-      const name = document.createElement("span");
-      name.className = "route-globe-name";
-      name.textContent = label.text;
-
-      pin.append(dot, name);
-      if (PRIMARY_LABELS.has(label.id)) pin.classList.add("is-named");
+      pin.append(dot);
+      pin.setAttribute("aria-label", label.text);
       pin.addEventListener("click", (event) => {
         event.stopPropagation();
         onSelectPlace(label.id);

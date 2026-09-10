@@ -6,6 +6,7 @@ import type { Face, LivePosition } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
 import { useLanguage } from "./language-provider";
 import { useCurrency } from "./currency-provider";
+import { SpotLogo } from "./spot-logo";
 
 const PHOTOS: Record<
   Face,
@@ -144,6 +145,7 @@ export function HeroSuitcasePreview() {
   const { dict } = useLanguage();
   const [face, setFace] = useState<Face>("front");
   const [paused, setPaused] = useState(false);
+  const resumeAt = useRef<number>(0);
   const reduceMotion = useSyncExternalStore(
     reduceMotionSubscribe,
     () => window.matchMedia("(prefers-reduced-motion: reduce)").matches,
@@ -158,12 +160,19 @@ export function HeroSuitcasePreview() {
     return () => window.clearInterval(timer);
   }, [paused, reduceMotion]);
 
+  useEffect(() => {
+    return () => window.clearTimeout(resumeAt.current);
+  }, []);
+
+  function pickFace(item: Face) {
+    setFace(item);
+    setPaused(true);
+    window.clearTimeout(resumeAt.current);
+    resumeAt.current = window.setTimeout(() => setPaused(false), 8000);
+  }
+
   return (
-    <div
-      className="hero-suitcase-stage relative mx-auto w-full max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
+    <div className="hero-suitcase-stage relative mx-auto w-full max-w-[560px] rounded-[28px] bg-white p-3 shadow-[0_18px_40px_rgba(11,27,74,0.12)] dark:bg-[#f4f3ef]">
       <div className="relative">
         {FACE_ORDER.map((item) => {
           const active = item === face;
@@ -189,7 +198,7 @@ export function HeroSuitcasePreview() {
             <button
               key={item}
               type="button"
-              onClick={() => setFace(item)}
+              onClick={() => pickFace(item)}
               className={`min-h-9 rounded-full px-1 font-mono text-[9px] font-semibold tracking-[0.08em] transition-colors ${
                 active ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
               }`}
@@ -352,10 +361,7 @@ function SpotOverlay({
         animationDelay: revealIndex != null ? `${420 + revealIndex * 110}ms` : undefined,
       }}
     >
-      {spot.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={spot.logo} alt="" className="h-full w-full object-contain" />
-      ) : (
+      {spot.logo ? <SpotLogo src={spot.logo} /> : (
         <>
           <strong
             className={`spot-id font-mono font-bold leading-none ${

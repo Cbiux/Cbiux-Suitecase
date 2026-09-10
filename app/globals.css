@@ -364,9 +364,9 @@ h2.anim-headline {
 .route-globe-pin {
   display: flex;
   align-items: center;
-  gap: 7px;
+  justify-content: center;
   margin: 0;
-  padding: 4px 9px 4px 6px;
+  padding: 4px;
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 999px;
   background: rgba(7, 11, 24, 0.62);
@@ -384,28 +384,6 @@ h2.anim-headline {
   box-shadow:
     0 0 0 2px rgba(44, 63, 209, 0.95),
     0 0 16px rgba(142, 182, 255, 0.95);
-}
-
-.route-globe-name {
-  font-family: var(--font-jetbrains), ui-monospace, monospace;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #f7f7f4;
-  text-shadow:
-    0 1px 2px rgba(0, 0, 0, 0.9),
-    0 0 16px rgba(11, 27, 74, 0.95);
-  white-space: nowrap;
-}
-
-.route-globe-pin:not(.is-named):not(.is-active) {
-  gap: 0;
-  padding: 4px;
-}
-
-.route-globe-pin:not(.is-named):not(.is-active) .route-globe-name {
-  display: none;
 }
 
 .route-globe-pin.is-active {
@@ -456,7 +434,7 @@ h2.anim-headline {
   -webkit-backdrop-filter: blur(10px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 247, 244, 0.9) 100%);
-  border: 2px solid #e6b800;
+  border: 2px solid rgba(255, 255, 255, 0.92);
   box-shadow:
     0 10px 24px rgba(17, 17, 17, 0.16),
     0 1px 0 rgba(255, 255, 255, 0.95) inset;
@@ -481,7 +459,8 @@ h2.anim-headline {
 
 .spot-hotspot.has-logo {
   background: #fff;
-  padding: 2px;
+  padding: 1px;
+  border-color: rgba(220, 220, 220, 0.95);
 }
 
 .spot-hotspot.has-logo.is-sold {
@@ -562,6 +541,14 @@ h2.anim-headline {
 }
 
 .spot-hotspot.is-active {
+  border-color: color-mix(in oklab, var(--primary) 45%, white);
+  box-shadow:
+    0 0 0 3px color-mix(in oklab, var(--primary) 22%, transparent),
+    0 14px 28px rgba(17, 17, 17, 0.18);
+}
+
+.spot-hotspot.is-held.is-active {
+  border-color: #e6b800;
   box-shadow:
     0 0 0 3px rgba(230, 184, 0, 0.4),
     0 14px 28px rgba(17, 17, 17, 0.18);
@@ -592,7 +579,7 @@ h2.anim-headline {
   .spot-hotspot:hover {
     z-index: 30;
     transform: translateY(-3px) scale(1.09);
-    border-color: #f5c400;
+    border-color: color-mix(in oklab, var(--primary) 45%, white);
     box-shadow:
       0 18px 34px rgba(17, 17, 17, 0.22),
       0 1px 0 rgba(255, 255, 255, 1) inset;

@@ -4,6 +4,7 @@ import { padSpot } from "@/lib/positions";
 import type { Face, LivePosition } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
+import { SpotLogo } from "./spot-logo";
 
 const PHOTOS: Record<Face, { src: string; mirror: boolean; alt: string }> = {
   front: {
@@ -115,7 +116,7 @@ function SpotButton({
           ? "border-[#22c55e] bg-white"
           : held
             ? "border-[#e6b800] bg-[#fff8e8]"
-            : "border-[#e6b800] bg-white/80 hover:border-[#f5c400] hover:bg-white/95"
+            : "border-white bg-white/80 hover:border-white hover:bg-white/95"
       } ${active ? "ring-2 ring-[#7c6aef] ring-offset-1 ring-offset-black/40" : ""}`}
       style={{
         left: `${spot.x}%`,
@@ -126,7 +127,7 @@ function SpotButton({
     >
       {spot.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={spot.logo} alt="" className="h-full w-full object-contain" />
+        <SpotLogo src={spot.logo} />
       ) : (
         <>
           <strong
