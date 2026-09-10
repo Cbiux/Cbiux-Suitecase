@@ -4,11 +4,13 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
 } from "react";
+import { bakeLogoPlateCached } from "@/lib/logo-fit";
 import { localizeInventory } from "@/lib/localize";
-import { getCatalogById } from "@/lib/positions";
+import { artworkSpec, getCatalogById } from "@/lib/positions";
 import type { ApproachPhase, Face, InventoryResponse, LivePosition } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 
@@ -48,6 +50,14 @@ export function InventoryProvider({
   const [facePinned, setFacePinned] = useState(false);
   const [claimOpen, setClaimOpen] = useState(false);
   const [approachPhase, setApproachPhase] = useState<ApproachPhase>("idle");
+
+  useEffect(() => {
+    for (const position of raw.positions) {
+      if (!position.logo) continue;
+      const spec = artworkSpec(position.size);
+      void bakeLogoPlateCached(position.logo, spec.cmW, spec.cmH);
+    }
+  }, [raw]);
 
   const refresh = useCallback(async () => {
     setLoading(true);

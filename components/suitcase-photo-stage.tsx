@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { FACE_ORDER, padSpot } from "@/lib/positions";
+import { bakeLogoPlateCached, peekBakedLogo } from "@/lib/logo-fit";
+import { FACE_ORDER, artworkSpec, padSpot } from "@/lib/positions";
 import { plateBorderColor } from "@/lib/logo-plate";
 import type { Face, LivePosition } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
@@ -221,6 +222,7 @@ function SuitcaseView({
   const photo = PHOTOS[face];
   const bagRef = useRef<HTMLImageElement>(null);
   const [bagReady, setBagReady] = useState(false);
+  const [logosReady, setLogosReady] = useState(false);
   const zooming =
     !compact &&
     focus &&
@@ -257,6 +259,47 @@ function SuitcaseView({
       image.removeEventListener("load", decode);
     };
   }, [photo.src]);
+
+  const logoKey = spots
+    .filter((spot) => spot.logo)
+    .map((spot) => `${spot.id}:${spot.size}:${spot.logo.length}:${spot.logo.slice(-16)}`)
+    .join("|");
+
+  useEffect(() => {
+    const logoSpots = spots.filter((spot) => spot.logo);
+    if (logoSpots.length === 0) {
+      setLogosReady(true);
+      return;
+    }
+    const already = logoSpots.every((spot) => {
+      const spec = artworkSpec(spot.size);
+      return Boolean(peekBakedLogo(spot.logo, spec.cmW, spec.cmH));
+    });
+    if (already) {
+      setLogosReady(true);
+      return;
+    }
+    let live = true;
+    setLogosReady(false);
+    Promise.all(
+      logoSpots.map((spot) => {
+        const spec = artworkSpec(spot.size);
+        return bakeLogoPlateCached(spot.logo, spec.cmW, spec.cmH);
+      }),
+    ).then(
+      () => {
+        if (live) setLogosReady(true);
+      },
+      () => {
+        if (live) setLogosReady(true);
+      },
+    );
+    return () => {
+      live = false;
+    };
+  }, [logoKey]);
+
+  const stageReady = bagReady && logosReady;
 
   return (
     <figure className={compact ? "m-0" : undefined}>
@@ -300,7 +343,7 @@ function SuitcaseView({
                     opacity: bagReady ? 1 : 0,
                   }}
                 />
-                {bagReady
+                {stageReady
                   ? spots.map((spot, index) => (
                       <SpotOverlay
                         key={spot.id}
@@ -368,7 +411,8 @@ function SpotOverlay({
   const banner = spot.width >= 40;
   const left = mirror ? 100 - spot.x - spot.width : spot.x;
   const price = sold ? dict.pick.sold : held ? dict.pick.held : format(spot.price);
-  const [plate, setPlate] = useState("#ffffff");
+  const spec = artworkSpec(spot.size);
+  const [plate, setPlate] = useState<string | null>(null);
   const status = sold ? "sold" : held ? "held" : "open";
 
   return (
@@ -392,14 +436,14 @@ function SpotOverlay({
         animationDelay: revealIndex != null ? `${420 + revealIndex * 110}ms` : undefined,
         ...(spot.logo
           ? {
-              backgroundColor: plate,
-              borderColor: plateBorderColor(plate, status),
+              backgroundColor: plate ?? "transparent",
+              borderColor: plate ? plateBorderColor(plate, status) : "transparent",
             }
           : null),
       }}
     >
       {spot.logo ? (
-        <SpotLogo src={spot.logo} onPlateColor={setPlate} />
+        <SpotLogo src={spot.logo} cmW={spec.cmW} cmH={spec.cmH} onPlateColor={setPlate} />
       ) : (
         <>
           <strong

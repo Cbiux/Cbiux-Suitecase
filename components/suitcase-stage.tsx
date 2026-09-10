@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { padSpot } from "@/lib/positions";
+import { artworkSpec, padSpot } from "@/lib/positions";
 import { plateBorderColor } from "@/lib/logo-plate";
 import type { Face, LivePosition } from "@/lib/types";
 import { useLanguage } from "./language-provider";
@@ -107,7 +107,8 @@ function SpotButton({
   const sold = spot.status === "sold";
   const held = spot.status === "reserved";
   const side = spot.face === "left" || spot.face === "right";
-  const [plate, setPlate] = useState("#ffffff");
+  const spec = artworkSpec(spot.size);
+  const [plate, setPlate] = useState<string | null>(null);
   const status = sold ? "sold" : held ? "held" : "open";
 
   return (
@@ -131,14 +132,14 @@ function SpotButton({
         height: `${spot.height}%`,
         ...(spot.logo
           ? {
-              backgroundColor: plate,
-              borderColor: plateBorderColor(plate, status),
+              backgroundColor: plate ?? "transparent",
+              borderColor: plate ? plateBorderColor(plate, status) : "transparent",
             }
           : null),
       }}
     >
       {spot.logo ? (
-        <SpotLogo src={spot.logo} onPlateColor={setPlate} />
+        <SpotLogo src={spot.logo} cmW={spec.cmW} cmH={spec.cmH} onPlateColor={setPlate} />
       ) : (
         <>
           <strong

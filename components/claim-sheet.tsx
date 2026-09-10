@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { compressReceipt } from "@/lib/compress-receipt";
 import { ARTWORK_ACCEPT, SITE } from "@/lib/config";
 import { artworkSpec, padSpot } from "@/lib/positions";
+import { bakeLogoPlateCached } from "@/lib/logo-fit";
 import { formatMoney } from "@/lib/currency";
 import { phoneLooksValid } from "@/lib/phone";
 import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
@@ -310,8 +311,17 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setLogo(String(reader.result));
-      setLogoName(file.name);
+      const raw = String(reader.result);
+      const spec = artworkSpec(selected.size);
+      void bakeLogoPlateCached(raw, spec.cmW, spec.cmH)
+        .then((baked) => {
+          setLogo(baked.src);
+          setLogoName(file.name);
+        })
+        .catch(() => {
+          setLogo(raw);
+          setLogoName(file.name);
+        });
     };
     reader.readAsDataURL(file);
   }

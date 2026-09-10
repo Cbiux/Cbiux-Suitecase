@@ -63,8 +63,8 @@ const SIDE = {
   // 10×10 cm en foto lateral: antes h=21.2 (muy alto). Cuadrado real ≈ 12.0%
   ...(() => {
     const cell = sideBox(10, 10, 16.0);
-    const topY = 31.5;
-    const gap = 8.5;
+    const topY = 44.8;
+    const gap = 9.2;
     return {
       h: cell.height,
       topY,

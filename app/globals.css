@@ -471,9 +471,8 @@ h2.anim-headline {
 }
 
 .spot-hotspot.has-logo {
-  /* Fondo: color de placa del logo (inline). Fallback blanco. */
-  background: #fff;
-  padding: 1px;
+  background: transparent;
+  padding: 0;
   border-color: rgba(220, 220, 220, 0.95);
 }
 

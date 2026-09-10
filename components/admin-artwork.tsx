@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ARTWORK_ACCEPT, ARTWORK_MAX_BYTES } from "@/lib/config";
-import { artworkSpec, padSpot } from "@/lib/positions";
+import { bakeLogoPlateCached } from "@/lib/logo-fit";
+import { artworkSpec, getCatalogById, padSpot } from "@/lib/positions";
 
 type Kind = "logo" | "comprobante";
 
@@ -86,7 +87,9 @@ export function AdminArtwork({
     setReplacing(true);
     try {
       const dataUrl = await readFileAsDataUrl(file);
-      await onReplace(dataUrl);
+      const spec = artworkSpec(panelSize || getCatalogById(positionId)?.size || "17 × 12");
+      const baked = await bakeLogoPlateCached(dataUrl, spec.cmW, spec.cmH).catch(() => null);
+      await onReplace(baked?.src ?? dataUrl);
     } catch (caught) {
       setError(artworkErrorMessage(caught instanceof Error ? caught.message : "UPDATE_FAILED"));
     } finally {
