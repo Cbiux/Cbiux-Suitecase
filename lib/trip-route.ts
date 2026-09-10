@@ -34,7 +34,7 @@ export const PLACES: Record<PlaceId, { lat: number; lng: number }> = {
   bom: { lat: 19.076, lng: 72.8777 },
 };
 
-/** Ida hasta Mumbai, luego el regreso. Dubái y Madrid se repiten a propósito. */
+/** Dubái → Mumbai, luego Delhi y Agra; la vuelta sale otra vez de Mumbai. */
 export const ROUTE_VISITS: PlaceId[] = [
   "sjo",
   "ams",
@@ -47,6 +47,7 @@ export const ROUTE_VISITS: PlaceId[] = [
   "mad",
   "lis",
   "dxb",
+  "bom",
   "del",
   "agr",
   "bom",
@@ -55,7 +56,7 @@ export const ROUTE_VISITS: PlaceId[] = [
   "sjo",
 ];
 
-export const OUTBOUND_HOPS = 13;
+export const OUTBOUND_HOPS = 14;
 
 export type RoutePoint = {
   id: PlaceId;
