@@ -1,5 +1,6 @@
 import { SITE } from "./config";
 import { slugBrand } from "./logo-file";
+import { plateColorFromImage } from "./logo-plate";
 import { padSpot } from "./positions";
 import type { Locale } from "./types";
 import {
@@ -7,7 +8,6 @@ import {
   MUTED,
   NAVY,
   POSTER,
-  WHITE,
   canvasToPng,
   drawCbiuxMark,
   drawContained,
@@ -87,7 +87,7 @@ export async function renderThanksPng(input: {
   ctx.fillText("Costa Rica → Europa → India", 72, 398);
 
   roundRect(ctx, 120, 470, 840, 540, 44);
-  ctx.fillStyle = WHITE;
+  ctx.fillStyle = plateColorFromImage(logo);
   ctx.fill();
   drawContained(ctx, logo, 168, 510, 744, 460);
 

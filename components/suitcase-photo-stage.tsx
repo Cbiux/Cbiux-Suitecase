@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FACE_ORDER, padSpot } from "@/lib/positions";
+import { plateBorderColor } from "@/lib/logo-plate";
 import type { Face, LivePosition } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
 import { useLanguage } from "./language-provider";
@@ -308,6 +309,8 @@ function SpotOverlay({
   const banner = spot.width >= 40;
   const left = mirror ? 100 - spot.x - spot.width : spot.x;
   const price = sold ? dict.pick.sold : held ? dict.pick.held : format(spot.price);
+  const [plate, setPlate] = useState("#ffffff");
+  const status = sold ? "sold" : held ? "held" : "open";
 
   return (
     <button
@@ -328,9 +331,17 @@ function SpotOverlay({
         width: `${spot.width}%`,
         height: `${spot.height}%`,
         animationDelay: revealIndex != null ? `${420 + revealIndex * 110}ms` : undefined,
+        ...(spot.logo
+          ? {
+              backgroundColor: plate,
+              borderColor: plateBorderColor(plate, status),
+            }
+          : null),
       }}
     >
-      {spot.logo ? <SpotLogo src={spot.logo} /> : (
+      {spot.logo ? (
+        <SpotLogo src={spot.logo} onPlateColor={setPlate} />
+      ) : (
         <>
           <strong
             className={`spot-id font-mono font-bold leading-none ${

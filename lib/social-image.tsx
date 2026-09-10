@@ -8,13 +8,13 @@ export const ogAlt =
   "cbiux: 22 posiciones en una maleta de cabina rumbo a Europa e India. Desde $45.";
 
 const SPOTS = [
-  { id: "01", left: "23.8%", top: "29.4%", width: "52.8%", height: "12.4%" },
-  { id: "02", left: "23.8%", top: "43%", width: "25.7%", height: "13.9%" },
-  { id: "03", left: "50.9%", top: "43%", width: "25.7%", height: "13.9%" },
-  { id: "04", left: "23.8%", top: "57.8%", width: "25.7%", height: "13.9%" },
-  { id: "05", left: "50.9%", top: "57.8%", width: "25.7%", height: "13.9%" },
-  { id: "19", left: "23.8%", top: "72.6%", width: "25.7%", height: "13.9%" },
-  { id: "20", left: "50.9%", top: "72.6%", width: "25.7%", height: "13.9%" },
+  { id: "01", left: "23.8%", top: "27.6%", width: "52.8%", height: "17.18%" },
+  { id: "02", left: "23.8%", top: "45.83%", width: "25.7%", height: "15.74%" },
+  { id: "03", left: "50.9%", top: "45.83%", width: "25.7%", height: "15.74%" },
+  { id: "04", left: "23.8%", top: "62.62%", width: "25.7%", height: "15.74%" },
+  { id: "05", left: "50.9%", top: "62.62%", width: "25.7%", height: "15.74%" },
+  { id: "19", left: "23.8%", top: "79.41%", width: "25.7%", height: "15.74%" },
+  { id: "20", left: "50.9%", top: "79.41%", width: "25.7%", height: "15.74%" },
 ] as const;
 
 async function suitcaseSrc() {

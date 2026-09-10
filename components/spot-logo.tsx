@@ -1,10 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { sampleLogoPlateColor } from "@/lib/logo-plate";
 
 const cropCache = new Map<string, string>();
 
-export function SpotLogo({ src }: { src: string }) {
+export function SpotLogo({
+  src,
+  onPlateColor,
+}: {
+  src: string;
+  onPlateColor?: (color: string) => void;
+}) {
   const [fitted, setFitted] = useState(() => cropCache.get(src) ?? "");
 
   useEffect(() => {
@@ -27,6 +34,22 @@ export function SpotLogo({ src }: { src: string }) {
       cancelled = true;
     };
   }, [src]);
+
+  useEffect(() => {
+    if (!onPlateColor) return;
+    let cancelled = false;
+    // Muestrear el archivo original (fondo negro completo), no el crop del glifo.
+    sampleLogoPlateColor(src)
+      .then((color) => {
+        if (!cancelled) onPlateColor(color);
+      })
+      .catch(() => {
+        if (!cancelled) onPlateColor("#ffffff");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [src, onPlateColor]);
 
   return (
     // eslint-disable-next-line @next/next/no-img-element

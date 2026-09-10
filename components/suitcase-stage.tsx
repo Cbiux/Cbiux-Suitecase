@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { padSpot } from "@/lib/positions";
+import { plateBorderColor } from "@/lib/logo-plate";
 import type { Face, LivePosition } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
@@ -105,6 +107,8 @@ function SpotButton({
   const sold = spot.status === "sold";
   const held = spot.status === "reserved";
   const side = spot.face === "left" || spot.face === "right";
+  const [plate, setPlate] = useState("#ffffff");
+  const status = sold ? "sold" : held ? "held" : "open";
 
   return (
     <button
@@ -112,22 +116,29 @@ function SpotButton({
       onClick={onSelect}
       aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, $${spot.price}, ${spot.status}`}
       className={`absolute z-10 flex flex-col items-center justify-center overflow-hidden border-2 backdrop-blur-[2px] transition ${
-        sold
-          ? "border-[#22c55e] bg-white"
-          : held
-            ? "border-[#e6b800] bg-[#fff8e8]"
-            : "border-white bg-white/80 hover:border-white hover:bg-white/95"
+        spot.logo
+          ? ""
+          : sold
+            ? "border-[#22c55e] bg-white"
+            : held
+              ? "border-[#e6b800] bg-[#fff8e8]"
+              : "border-white bg-white/80 hover:border-white hover:bg-white/95"
       } ${active ? "ring-2 ring-[#7c6aef] ring-offset-1 ring-offset-black/40" : ""}`}
       style={{
         left: `${spot.x}%`,
         top: `${spot.y}%`,
         width: `${spot.width}%`,
         height: `${spot.height}%`,
+        ...(spot.logo
+          ? {
+              backgroundColor: plate,
+              borderColor: plateBorderColor(plate, status),
+            }
+          : null),
       }}
     >
       {spot.logo ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <SpotLogo src={spot.logo} />
+        <SpotLogo src={spot.logo} onPlateColor={setPlate} />
       ) : (
         <>
           <strong

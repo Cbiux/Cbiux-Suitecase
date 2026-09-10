@@ -10,24 +10,67 @@ export const TRIP = {
   spotCount: 22,
 } as const;
 
+/**
+ * Coordenadas en % del foto (no cm).
+ * El aspect del rectángulo en pantalla debe respetar cmW/cmH
+ * compensando que 1% ancho ≠ 1% alto (foto 1168×1346).
+ *
+ *   width% / height% = (cmW / cmH) * (photoH / photoW)
+ */
+const FRONT_PHOTO = { w: 1168, h: 1346 } as const;
+const FRONT_PCT_RATIO = FRONT_PHOTO.h / FRONT_PHOTO.w; // ~1.152
+
+function frontBox(cmW: number, cmH: number, widthPct: number) {
+  const heightPct = widthPct / ((cmW / cmH) * FRONT_PCT_RATIO);
+  return { width: widthPct, height: Number(heightPct.toFixed(2)) };
+}
+
 const FRONT = {
   x: 23.8,
   bannerW: 52.8,
   cellW: 25.7,
   rightX: 50.9,
-  bannerY: 29.4,
-  bannerH: 12.4,
-  cellH: 13.9,
-  rowsY: [43.0, 57.8, 72.6],
+  // Antes bannerH 12.4 → ratio ~4.3:1 (aplastado). 40×15 real ≈ 2.67:1 → ~17.2%
+  ...(() => {
+    const banner = frontBox(40, 15, 52.8);
+    const cell = frontBox(17, 12, 25.7);
+    const bannerY = 27.6;
+    const gap = 1.05;
+    const row0 = bannerY + banner.height + gap;
+    const row1 = row0 + cell.height + gap;
+    const row2 = row1 + cell.height + gap;
+    return {
+      bannerH: banner.height,
+      cellH: cell.height,
+      bannerY,
+      rowsY: [row0, row1, row2].map((y) => Number(y.toFixed(2))),
+    };
+  })(),
 } as const;
+
+const SIDE_PHOTO = { w: 768, h: 1024 } as const;
+const SIDE_PCT_RATIO = SIDE_PHOTO.h / SIDE_PHOTO.w; // ~1.333
+
+function sideBox(cmW: number, cmH: number, widthPct: number) {
+  const heightPct = widthPct / ((cmW / cmH) * SIDE_PCT_RATIO);
+  return { width: widthPct, height: Number(heightPct.toFixed(2)) };
+}
 
 const SIDE = {
   leftX: 33.8,
   rightX: 50.4,
   w: 16.0,
-  topY: 29.6,
-  bottomY: 61.2,
-  h: 21.2,
+  // 10×10 cm en foto lateral: antes h=21.2 (muy alto). Cuadrado real ≈ 12.0%
+  ...(() => {
+    const cell = sideBox(10, 10, 16.0);
+    const topY = 31.5;
+    const gap = 8.5;
+    return {
+      h: cell.height,
+      topY,
+      bottomY: Number((topY + cell.height + gap).toFixed(2)),
+    };
+  })(),
 } as const;
 
 export const POSITION_CATALOG: PositionCatalog[] = [

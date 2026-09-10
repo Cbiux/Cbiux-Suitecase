@@ -471,13 +471,14 @@ h2.anim-headline {
 }
 
 .spot-hotspot.has-logo {
+  /* Fondo: color de placa del logo (inline). Fallback blanco. */
   background: #fff;
   padding: 1px;
   border-color: rgba(220, 220, 220, 0.95);
 }
 
 .spot-hotspot.has-logo.is-sold {
-  background: #fff;
+  background: transparent;
   border-color: #22c55e;
   box-shadow:
     0 0 0 1px rgba(20, 122, 75, 0.45),
@@ -485,7 +486,7 @@ h2.anim-headline {
 }
 
 .spot-hotspot.has-logo.is-held {
-  background: #fff;
+  background: transparent;
   border-color: #e6b800;
   box-shadow:
     0 0 0 1px rgba(180, 130, 0, 0.4),
@@ -512,7 +513,8 @@ h2.anim-headline {
 .dark .spot-hotspot.has-logo,
 .dark .spot-hotspot.has-logo.is-sold,
 .dark .spot-hotspot.has-logo.is-held {
-  background: #fff;
+  /* El fondo lo define el color de placa del logo (inline). */
+  background: transparent;
 }
 
 .dark .spot-hotspot.has-logo.is-sold {

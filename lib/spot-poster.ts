@@ -1,5 +1,6 @@
 import { SITE } from "./config";
 import { slugBrand } from "./logo-file";
+import { plateColorFromImage } from "./logo-plate";
 import { POSITION_CATALOG, getCatalogById, padSpot } from "./positions";
 import type { Face, Locale, PositionCatalog } from "./types";
 import {
@@ -187,9 +188,9 @@ function drawMockup(
     ctx.fill();
   }
 
-  const plate = plateRadius(target, catalog.face);
-  roundRect(ctx, target.x, target.y, target.w, target.h, plate);
-  ctx.fillStyle = WHITE;
+  const plate = plateColorFromImage(logo);
+  roundRect(ctx, target.x, target.y, target.w, target.h, plateRadius(target, catalog.face));
+  ctx.fillStyle = plate;
   ctx.fill();
   drawContained(ctx, logo, target.x + 2, target.y + 2, target.w - 4, target.h - 4);
   ctx.restore();
@@ -216,8 +217,9 @@ function fitZoom(
   spot: { x: number; y: number; w: number; h: number },
   view: { x: number; y: number; w: number; h: number },
 ) {
-  const coverW = catalog.width >= 40 ? 0.78 : catalog.width >= 22 ? 0.64 : 0.7;
-  const coverH = catalog.width >= 40 ? 0.3 : 0.72;
+  const coverW = catalog.width >= 40 ? 0.82 : catalog.width >= 22 ? 0.64 : 0.7;
+  // Banner 40×15 es más alto que el hot-spot viejo aplastado; dar más alto al zoom.
+  const coverH = catalog.width >= 40 ? 0.42 : 0.72;
   const scale = Math.min(Math.min((view.w * coverW) / spot.w, (view.h * coverH) / spot.h), 3.2);
   return {
     scale: Math.max(scale, 1.18),
