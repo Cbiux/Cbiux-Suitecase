@@ -110,12 +110,12 @@ function SpotButton({
       type="button"
       onClick={onSelect}
       aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, $${spot.price}, ${spot.status}`}
-      className={`absolute z-10 flex flex-col items-center justify-center overflow-hidden border backdrop-blur-[2px] transition ${
+      className={`absolute z-10 flex flex-col items-center justify-center overflow-hidden border-2 backdrop-blur-[2px] transition ${
         sold
-          ? "border-[#3dd68c] bg-white/90"
+          ? "border-[#22c55e] bg-white"
           : held
-            ? "border-[#d4b45a] bg-[#fff8e8]/90"
-            : "border-[#c4b8ff] bg-white/80 hover:border-[#7c6aef] hover:bg-white/95"
+            ? "border-[#e6b800] bg-[#fff8e8]"
+            : "border-[#e6b800] bg-white/80 hover:border-[#f5c400] hover:bg-white/95"
       } ${active ? "ring-2 ring-[#7c6aef] ring-offset-1 ring-offset-black/40" : ""}`}
       style={{
         left: `${spot.x}%`,
@@ -126,7 +126,7 @@ function SpotButton({
     >
       {spot.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={spot.logo} alt="" className="max-h-[78%] max-w-[86%] object-contain" />
+        <img src={spot.logo} alt="" className="h-full w-full object-contain" />
       ) : (
         <>
           <strong

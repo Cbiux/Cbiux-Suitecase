@@ -1,8 +1,12 @@
 export const PLACE_IDS = [
   "sjo",
   "ams",
-  "ber",
   "bru",
+  "cgn",
+  "pfz",
+  "ber",
+  "prg",
+  "nyn",
   "mad",
   "par",
   "rom",
@@ -16,8 +20,12 @@ export type PlaceId = (typeof PLACE_IDS)[number];
 export const PLACES: Record<PlaceId, { lat: number; lng: number }> = {
   sjo: { lat: 9.9281, lng: -84.0907 },
   ams: { lat: 52.3676, lng: 4.9041 },
-  ber: { lat: 52.52, lng: 13.405 },
   bru: { lat: 50.8503, lng: 4.3517 },
+  cgn: { lat: 50.9375, lng: 6.9603 },
+  pfz: { lat: 48.8945, lng: 8.7047 },
+  ber: { lat: 52.52, lng: 13.405 },
+  prg: { lat: 50.0755, lng: 14.4378 },
+  nyn: { lat: 46.3833, lng: 6.2396 },
   mad: { lat: 40.4168, lng: -3.7038 },
   par: { lat: 48.8566, lng: 2.3522 },
   rom: { lat: 41.9028, lng: 12.4964 },
@@ -30,8 +38,12 @@ export const PLACES: Record<PlaceId, { lat: number; lng: number }> = {
 export const ROUTE_VISITS: PlaceId[] = [
   "sjo",
   "ams",
-  "ber",
   "bru",
+  "cgn",
+  "pfz",
+  "ber",
+  "prg",
+  "nyn",
   "mad",
   "par",
   "rom",
@@ -43,7 +55,7 @@ export const ROUTE_VISITS: PlaceId[] = [
   "sjo",
 ];
 
-export const OUTBOUND_HOPS = 9;
+export const OUTBOUND_HOPS = 13;
 
 export type RoutePoint = {
   id: PlaceId;

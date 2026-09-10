@@ -339,8 +339,8 @@ function SpotOverlay({
         onSelect();
       }}
       aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, ${format(spot.price)}, ${spot.status}${spot.sponsor ? `, ${spot.sponsor}` : ""}`}
-      className={`spot-hotspot absolute z-10 box-border flex flex-col items-center justify-center gap-0.5 px-1 ${
-        spot.logo ? "overflow-hidden" : "overflow-visible"
+      className={`spot-hotspot absolute z-10 box-border flex flex-col items-center justify-center ${
+        spot.logo ? "has-logo overflow-hidden" : "overflow-visible gap-0.5 px-1"
       } ${side ? "rounded-2xl" : "rounded-xl"} ${sold ? "is-sold" : held ? "is-held" : ""} ${
         active ? "is-active" : ""
       } ${revealIndex != null ? "spot-reveal" : ""}`}
@@ -354,7 +354,7 @@ function SpotOverlay({
     >
       {spot.logo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={spot.logo} alt="" className="max-h-[70%] max-w-[86%] object-contain" />
+        <img src={spot.logo} alt="" className="h-full w-full object-contain" />
       ) : (
         <>
           <strong
@@ -387,11 +387,11 @@ function SpotOverlay({
           </span>
         </>
       )}
-      {sold || held ? (
+      {spot.logo || !(sold || held) ? null : (
         <span className="spot-status-chip">
           {spot.sponsor || (sold ? dict.pick.sold : dict.pick.held)}
         </span>
-      ) : null}
+      )}
     </button>
   );
 }

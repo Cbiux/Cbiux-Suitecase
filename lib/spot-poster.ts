@@ -191,7 +191,10 @@ function drawMockup(
   roundRect(ctx, target.x, target.y, target.w, target.h, plate);
   ctx.fillStyle = WHITE;
   ctx.fill();
-  drawContained(ctx, logo, target.x + target.w * 0.07, target.y + target.h * 0.08, target.w * 0.86, target.h * 0.84);
+  drawContained(ctx, logo, target.x + 2, target.y + 2, target.w - 4, target.h - 4);
+  ctx.strokeStyle = "#22c55e";
+  ctx.lineWidth = Math.max(5, Math.min(target.w, target.h) * 0.045);
+  ctx.stroke();
   ctx.restore();
 
   const screen = {
