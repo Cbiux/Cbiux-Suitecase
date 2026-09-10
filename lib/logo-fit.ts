@@ -42,8 +42,8 @@ export async function bakeLogoPlate(src: string, cmW: number, cmH: number): Prom
   ctx.fillRect(0, 0, w, h);
   const sx = box?.x ?? 0;
   const sy = box?.y ?? 0;
-  const sw = box?.w ?? image.naturalWidth || image.width;
-  const sh = box?.h ?? image.naturalHeight || image.height;
+  const sw = box?.w ?? (image.naturalWidth || image.width);
+  const sh = box?.h ?? (image.naturalHeight || image.height);
   if (sw > 0 && sh > 0) {
     const scale = Math.min(w / sw, h / sh);
     const dw = sw * scale;
