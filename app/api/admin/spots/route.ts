@@ -20,8 +20,11 @@ export async function POST(request: Request) {
       positionId?: number;
       status?: SpotStatus;
       sponsor?: string;
+      email?: string;
+      phone?: string;
       logo?: string;
       release?: boolean;
+      thanksEmailSentAt?: string;
     };
     const positionId = Number(body.positionId);
     if (!positionId) {
@@ -31,8 +34,11 @@ export async function POST(request: Request) {
       positionId,
       status: body.status,
       sponsor: body.sponsor,
+      email: body.email,
+      phone: body.phone,
       logo: body.logo,
       release: body.release,
+      thanksEmailSentAt: body.thanksEmailSentAt,
     });
     return Response.json({ spot });
   } catch (error) {

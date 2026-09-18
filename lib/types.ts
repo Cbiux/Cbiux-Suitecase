@@ -31,6 +31,7 @@ export type PositionState = {
   network: PaymentNetwork | "";
   checkoutToken: string;
   comprobante: string;
+  thanksEmailSentAt: string;
 };
 
 export type LivePosition = PositionCatalog &

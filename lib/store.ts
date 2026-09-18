@@ -5,6 +5,7 @@ import { getWallets, SINPE_HOLD_HOURS } from "./config";
 import { parseComprobanteDataUrl } from "./comprobante";
 import { parseArtworkDataUrl } from "./artwork";
 import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
+import { isValidEmail } from "./email";
 import { loadStoreRaw, saveStoreRaw } from "./persist";
 import type {
   InventoryResponse,
@@ -32,6 +33,7 @@ const emptyState = (): PositionState => ({
   network: "",
   checkoutToken: "",
   comprobante: "",
+  thanksEmailSentAt: "",
 });
 
 function seedStore(): StoreShape {
@@ -53,24 +55,37 @@ function hydrateOffer(offer: OfferRecord): OfferRecord {
   };
 }
 
+function mergeStore(raw: StoreShape | null): StoreShape {
+  const seeded = seedStore();
+  if (!raw?.positions) return seeded;
+  for (const position of POSITION_CATALOG) {
+    const key = String(position.id);
+    seeded.positions[key] = { ...emptyState(), ...raw.positions[key] };
+  }
+  seeded.payments = raw.payments ?? [];
+  seeded.offers = (raw.offers ?? []).map(hydrateOffer);
+  seeded.updatedAt = raw.updatedAt ?? seeded.updatedAt;
+  return seeded;
+}
+
 async function readStore(): Promise<StoreShape> {
-  try {
-    const raw = await loadStoreRaw();
-    if (!raw) throw new Error("empty");
-    const parsed = JSON.parse(raw) as StoreShape;
+  const raw = await loadStoreRaw();
+  if (!raw) {
     const seeded = seedStore();
-    for (const position of POSITION_CATALOG) {
-      const key = String(position.id);
-      parsed.positions[key] = { ...emptyState(), ...parsed.positions[key] };
+    try {
+      await persist(seeded);
+    } catch (error) {
+      console.error("[store] could not persist empty inventory");
+      console.error(error);
     }
-    parsed.payments = parsed.payments ?? [];
-    parsed.offers = (parsed.offers ?? []).map(hydrateOffer);
-    parsed.updatedAt = parsed.updatedAt ?? seeded.updatedAt;
-    return parsed;
-  } catch {
-    const seeded = seedStore();
-    await persist(seeded);
     return seeded;
+  }
+  try {
+    return mergeStore(JSON.parse(raw) as StoreShape);
+  } catch (error) {
+    console.error("[store] inventory JSON is unreadable; using empty catalog");
+    console.error(error);
+    return seedStore();
   }
 }
 
@@ -128,25 +143,40 @@ export function hydratePositions(
   });
 }
 
+function snapshotInventory(store: StoreShape, locale: Locale = "es"): InventoryResponse {
+  const positions = hydratePositions(store, locale);
+  const sold = positions.filter((p) => p.status === "sold");
+  return {
+    positions,
+    committed: sold.reduce((sum, p) => p.price + sum, 0),
+    available: positions.filter((p) => p.status === "available").length,
+    reserved: positions.filter((p) => p.status === "reserved").length,
+    sold: sold.length,
+    total: positions.length,
+    updatedAt: store.updatedAt,
+    wallets: getWallets(),
+  };
+}
+
 export async function getInventory(locale: Locale = "es"): Promise<InventoryResponse> {
-  return withLock(async () => {
-    const store = await readStore();
-    if (expireReservations(store)) await persist(store);
-    const positions = hydratePositions(store, locale);
-    const sold = positions.filter((p) => p.status === "sold");
-    const reserved = positions.filter((p) => p.status === "reserved").length;
-    const available = positions.filter((p) => p.status === "available").length;
-    return {
-      positions,
-      committed: sold.reduce((sum, p) => sum + p.price, 0),
-      available,
-      reserved,
-      sold: sold.length,
-      total: positions.length,
-      updatedAt: store.updatedAt,
-      wallets: getWallets(),
-    };
-  });
+  try {
+    return await withLock(async () => {
+      const store = await readStore();
+      if (expireReservations(store)) {
+        try {
+          await persist(store);
+        } catch (error) {
+          console.error("[store] could not persist expired holds");
+          console.error(error);
+        }
+      }
+      return snapshotInventory(store, locale);
+    });
+  } catch (error) {
+    console.error("[store] inventory fallback to empty catalog");
+    console.error(error);
+    return snapshotInventory(seedStore(), locale);
+  }
 }
 
 export async function startCheckout(input: {
@@ -324,16 +354,35 @@ export async function publishLogo(input: {
 }
 
 export async function adminList() {
-  return withLock(async () => {
-    const store = await readStore();
-    if (expireReservations(store)) await persist(store);
+  try {
+    return await withLock(async () => {
+      const store = await readStore();
+      if (expireReservations(store)) {
+        try {
+          await persist(store);
+        } catch (error) {
+          console.error("[store] could not persist expired holds");
+          console.error(error);
+        }
+      }
+      return {
+        positions: hydratePositions(store, "es", { includePrivate: true }),
+        payments: store.payments,
+        offers: store.offers ?? [],
+        updatedAt: store.updatedAt,
+      };
+    });
+  } catch (error) {
+    console.error("[store] admin fallback to empty catalog");
+    console.error(error);
+    const store = seedStore();
     return {
       positions: hydratePositions(store, "es", { includePrivate: true }),
-      payments: store.payments,
-      offers: store.offers ?? [],
+      payments: [],
+      offers: [],
       updatedAt: store.updatedAt,
     };
-  });
+  }
 }
 
 function nextAdminLogo(input: string | undefined, current: string) {
@@ -348,8 +397,11 @@ export async function adminUpdateSpot(input: {
   positionId: number;
   status?: SpotStatus;
   sponsor?: string;
+  email?: string;
+  phone?: string;
   logo?: string;
   release?: boolean;
+  thanksEmailSentAt?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -360,25 +412,45 @@ export async function adminUpdateSpot(input: {
     if (input.release) {
       store.positions[String(catalog.id)] = emptyState();
     } else {
+      const nextSponsor =
+        input.sponsor !== undefined ? input.sponsor.trim() : current.sponsor;
+      const nextEmail = input.email !== undefined ? input.email.trim() : current.email;
+      const nextPhone = input.phone !== undefined ? input.phone.trim() : current.phone;
+      if (nextEmail && !isValidEmail(nextEmail)) throw new Error("INVALID_EMAIL");
+      if (nextEmail.length > 120 || nextPhone.length > 20 || nextSponsor.length > 80) {
+        throw new Error("TOO_LONG");
+      }
       const nextStatus = input.status ?? current.status;
+      const emailChanged = input.email !== undefined && nextEmail !== current.email;
+      const nextThanksSent =
+        input.thanksEmailSentAt !== undefined
+          ? input.thanksEmailSentAt
+          : emailChanged
+            ? ""
+            : (current.thanksEmailSentAt ?? "");
       if (nextStatus === "sold" && current.status !== "sold") {
         store.payments.push({
           id: token(),
           positionId: catalog.id,
-          brandName: (input.sponsor ?? current.sponsor) || "admin",
-          email: current.email,
+          brandName: nextSponsor || "admin",
+          email: nextEmail,
           amount: catalog.price,
           network: current.network || "sinpe",
           txHash: current.txHash || "admin-accept",
           verifiedAt: new Date().toISOString(),
           mode: "manual",
         });
+      } else {
+        syncLatestPayment(store, catalog.id, nextSponsor, nextEmail);
       }
       store.positions[String(catalog.id)] = {
         ...current,
         status: nextStatus,
-        sponsor: input.sponsor ?? current.sponsor,
+        sponsor: nextSponsor,
+        email: nextEmail,
+        phone: nextPhone,
         logo: nextAdminLogo(input.logo, current.logo),
+        thanksEmailSentAt: nextThanksSent,
         reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
         reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:
@@ -388,8 +460,41 @@ export async function adminUpdateSpot(input: {
       };
     }
     await persist(store);
-    return hydratePositions(store, "es").find((p) => p.id === catalog.id);
+    return hydratePositions(store, "es", { includePrivate: true }).find((p) => p.id === catalog.id);
   });
+}
+
+export async function markThanksEmailSent(positionId: number) {
+  return withLock(async () => {
+    const store = await readStore();
+    const catalog = POSITION_CATALOG.find((p) => p.id === positionId);
+    if (!catalog) throw new Error("UNKNOWN_POSITION");
+    const current = store.positions[String(catalog.id)] ?? emptyState();
+    const sentAt = new Date().toISOString();
+    store.positions[String(catalog.id)] = {
+      ...current,
+      thanksEmailSentAt: sentAt,
+    };
+    await persist(store);
+    return sentAt;
+  });
+}
+
+function syncLatestPayment(
+  store: StoreShape,
+  positionId: number,
+  brandName: string,
+  email: string,
+) {
+  for (let index = store.payments.length - 1; index >= 0; index -= 1) {
+    if (store.payments[index].positionId !== positionId) continue;
+    store.payments[index] = {
+      ...store.payments[index],
+      brandName: brandName || store.payments[index].brandName,
+      email,
+    };
+    return;
+  }
 }
 
 export async function saveOffer(input: {

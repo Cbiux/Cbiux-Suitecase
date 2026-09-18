@@ -1,9 +1,8 @@
-import { saveOffer } from "@/lib/store";
+import { EMAIL_RE } from "@/lib/email";
 import { phoneLooksValid } from "@/lib/phone";
+import { saveOffer } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: Request) {
   try {

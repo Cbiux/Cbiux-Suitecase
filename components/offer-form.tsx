@@ -2,14 +2,13 @@
 
 import { FormEvent, useState } from "react";
 import { SITE } from "@/lib/config";
+import { EMAIL_RE } from "@/lib/email";
 import { phoneLooksValid } from "@/lib/phone";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLanguage } from "./language-provider";
 import { AnimatedLetters } from "./animated-letters";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type OfferFields = {
   brand: string;
