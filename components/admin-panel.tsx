@@ -12,6 +12,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sendThanksMailForSpot } from "@/lib/admin-thanks-send";
+import {
+  formatReceivedBookkeeping,
+  formatReceivedMoney,
+  receivedMethodLabel,
+} from "@/lib/received";
 import { padSpot } from "@/lib/positions";
 import { whatsappHref } from "@/lib/phone";
 import type { LivePosition, OfferRecord, OfferStatus, PaymentRecord } from "@/lib/types";
@@ -100,11 +105,10 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
     [data.positions],
   );
   const mailsSent = data.positions.filter((spot) => Boolean(spot.thanksEmailSentAt)).length;
-  const receivedTotal = sold.reduce(
-    (sum, spot) => sum + (spot.receivedConfirmedAt ? spot.receivedAmount : 0),
-    0,
+  const accounts = useMemo(
+    () => formatReceivedBookkeeping(data.positions),
+    [data.positions],
   );
-  const missingReceived = sold.filter((spot) => !spot.receivedConfirmedAt).length;
 
   async function load() {
     const response = await fetch("/api/admin/spots", { cache: "no-store" });
@@ -242,14 +246,14 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
         <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Pendientes" value={String(pendingSpots.length + pendingOffers.length)} />
           <Stat label="Vendidas" value={String(sold.length)} />
-          <Stat label="Recibido" value={`$${receivedTotal.toLocaleString("en-US")}`} />
-          <Stat label="Sin anotar" value={String(missingReceived)} />
+          <Stat label="Recibido" value={accounts.line} />
+          <Stat label="Sin anotar" value={String(accounts.missing)} />
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Vendidas" value={String(sold.length)} />
-          <Stat label="Recibido" value={`$${receivedTotal.toLocaleString("en-US")}`} />
-          <Stat label="Sin anotar" value={String(missingReceived)} />
+          <Stat label="Recibido" value={accounts.line} />
+          <Stat label="Sin anotar" value={String(accounts.missing)} />
           <Stat label="Correos enviados" value={String(mailsSent)} />
         </div>
       )}
@@ -576,7 +580,7 @@ function PaymentsList({
             const spot = receivedById.get(payment.positionId);
             const received =
               spot?.receivedConfirmedAt && spot.receivedAmount
-                ? `recibido $${spot.receivedAmount}`
+                ? `${receivedMethodLabel(spot.receivedMethod) || "recibido"} ${formatReceivedMoney(spot.receivedAmount, spot.receivedCurrency || "usd")}${spot.receivedMethod === "in_kind" ? " aprox." : ""}`
                 : "sin anotar recibido";
             return (
               <p

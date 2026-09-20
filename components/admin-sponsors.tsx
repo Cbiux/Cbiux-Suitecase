@@ -8,7 +8,14 @@ import { adminActionBtn, formatWhen, mailErrorLabel, StatusPill } from "@/compon
 import { padSpot } from "@/lib/positions";
 import { whatsappHref } from "@/lib/phone";
 import { isValidEmail } from "@/lib/email";
-import type { LivePosition, SpotStatus } from "@/lib/types";
+import {
+  defaultReceivedCurrency,
+  formatReceivedBookkeeping,
+  formatReceivedMoney,
+  guessReceivedMethod,
+  receivedMethodLabel,
+} from "@/lib/received";
+import type { LivePosition, ReceivedCurrency, ReceivedMethod, SpotStatus } from "@/lib/types";
 
 export function AdminSponsors({
   positions,
@@ -29,11 +36,7 @@ export function AdminSponsors({
     () => positions.filter((spot) => spot.status === "sold"),
     [positions],
   );
-  const receivedTotal = sold.reduce(
-    (sum, spot) => sum + (spot.receivedConfirmedAt ? spot.receivedAmount : 0),
-    0,
-  );
-  const missingReceived = sold.filter((spot) => !spot.receivedConfirmedAt).length;
+  const accounts = useMemo(() => formatReceivedBookkeeping(positions), [positions]);
 
   return (
     <section>
@@ -43,9 +46,9 @@ export function AdminSponsors({
         {missingEmail ? ` ${missingEmail} confirmados o reservados no tienen correo: no se les puede mandar el pack.` : ""}
       </p>
       <p className="mt-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
-        <span className="font-medium">Cuentas:</span> ${formatUsd(receivedTotal)} confirmados como recibidos
-        {missingReceived
-          ? ` · ${missingReceived} vendidos sin anotar cuánto te llegó`
+        <span className="font-medium">Cuentas:</span> {accounts.line}
+        {accounts.missing
+          ? ` · ${accounts.missing} vendidos sin anotar`
           : sold.length
             ? " · todos los vendidos tienen monto"
             : ""}
@@ -54,7 +57,7 @@ export function AdminSponsors({
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {positions.map((spot) => (
           <SponsorCard
-            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.logo ? "logo" : "empty"}`}
+            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.receivedMethod}-${spot.receivedCurrency}-${spot.logo ? "logo" : "empty"}`}
             spot={spot}
             onUpdate={onUpdate}
             onSend={onSend}
@@ -83,6 +86,12 @@ function SponsorCard({
   const [status, setStatus] = useState<SpotStatus>(spot.status);
   const [received, setReceived] = useState(
     spot.receivedConfirmedAt && spot.receivedAmount ? String(spot.receivedAmount) : "",
+  );
+  const [method, setMethod] = useState<ReceivedMethod | "">(
+    spot.receivedMethod || guessReceivedMethod(spot.network),
+  );
+  const [currency, setCurrency] = useState<ReceivedCurrency>(
+    spot.receivedCurrency || defaultReceivedCurrency(spot.receivedMethod || guessReceivedMethod(spot.network)),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -125,11 +134,21 @@ function SponsorCard({
 
   async function confirmReceived() {
     setError("");
+    if (!method) {
+      setError(mailErrorLabel("INVALID_METHOD"));
+      return;
+    }
     setBusy(true);
     try {
-      await onUpdate(spot.id, { receivedAmount: received });
+      await onUpdate(spot.id, {
+        receivedAmount: received,
+        receivedMethod: method,
+        receivedCurrency: currency,
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo confirmar el monto.");
+      setError(
+        mailErrorLabel(err instanceof Error ? err.message : "UPDATE_FAILED"),
+      );
     } finally {
       setBusy(false);
     }
@@ -242,29 +261,77 @@ function SponsorCard({
 
       {status === "sold" ? (
         <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
-          <Label htmlFor={`received-${spot.id}`}>USD que te llegaron</Label>
-          <div className="mt-1.5 flex flex-wrap gap-2">
-            <Input
-              id={`received-${spot.id}`}
-              inputMode="decimal"
-              placeholder={`precio del spot: ${spot.price}`}
-              value={received}
-              onChange={(event) => setReceived(event.target.value)}
-              className="max-w-[10rem]"
-            />
-            <button
-              type="button"
-              className={`${adminActionBtn} bg-primary text-primary-foreground border-transparent`}
-              disabled={busy}
-              onClick={() => void confirmReceived()}
-            >
-              Confirmar recibido
-            </button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor={`method-${spot.id}`}>Cómo te llegó</Label>
+              <select
+                id={`method-${spot.id}`}
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                value={method}
+                onChange={(event) => {
+                  const next = event.target.value as ReceivedMethod | "";
+                  setMethod(next);
+                  if (!spot.receivedConfirmedAt) {
+                    setCurrency(defaultReceivedCurrency(next));
+                  }
+                }}
+              >
+                <option value="">elegí…</option>
+                <option value="sinpe">SINPE</option>
+                <option value="crypto">crypto</option>
+                <option value="in_kind">en especie</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor={`currency-${spot.id}`}>Moneda</Label>
+              <select
+                id={`currency-${spot.id}`}
+                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value as ReceivedCurrency)}
+              >
+                <option value="usd">dólares</option>
+                <option value="crc">colones</option>
+              </select>
+            </div>
+          </div>
+          <div className="mt-3 space-y-1.5">
+            <Label htmlFor={`received-${spot.id}`}>
+              {method === "in_kind"
+                ? `Valor aproximado del patrocinio (${currency === "crc" ? "colones" : "dólares"})`
+                : `Monto recibido (${currency === "crc" ? "colones" : "dólares"})`}
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                id={`received-${spot.id}`}
+                inputMode="decimal"
+                placeholder={
+                  method === "in_kind"
+                    ? currency === "crc"
+                      ? "valor aprox. en ₡"
+                      : "valor aprox. en $"
+                    : currency === "crc"
+                      ? "ej. 25000"
+                      : `precio del spot: ${spot.price}`
+                }
+                value={received}
+                onChange={(event) => setReceived(event.target.value)}
+                className="max-w-[10rem]"
+              />
+              <button
+                type="button"
+                className={`${adminActionBtn} bg-primary text-primary-foreground border-transparent`}
+                disabled={busy}
+                onClick={() => void confirmReceived()}
+              >
+                Confirmar recibido
+              </button>
+            </div>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
             Para tus cuentas. No cambia el precio público del spot.
             {spot.receivedConfirmedAt
-              ? ` Última confirmación: ${formatUsd(spot.receivedAmount)} el ${formatWhen(spot.receivedConfirmedAt)}.`
+              ? ` Última confirmación: ${receivedMethodLabel(spot.receivedMethod)} · ${formatReceivedMoney(spot.receivedAmount, spot.receivedCurrency || "usd")}${spot.receivedMethod === "in_kind" ? " aprox." : ""} el ${formatWhen(spot.receivedConfirmedAt)}.`
               : " Este confirmado todavía no tiene monto anotado."}
           </p>
         </div>
@@ -282,7 +349,7 @@ function SponsorCard({
       ) : null}
       {missingReceived ? (
         <p className="mt-2 text-xs text-[#6b4f00] dark:text-[#ffd54a]">
-          Confirmado como vendido, pero todavía no anotaste cuánto te llegó.
+          Confirmado como vendido, pero todavía no anotaste cómo y cuánto te llegó.
         </p>
       ) : null}
 
@@ -316,11 +383,4 @@ function SponsorCard({
       {error ? <p className="mt-2 text-xs text-destructive">{mailErrorLabel(error)}</p> : null}
     </article>
   );
-}
-
-function formatUsd(value: number) {
-  return value.toLocaleString("en-US", {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: 2,
-  });
 }

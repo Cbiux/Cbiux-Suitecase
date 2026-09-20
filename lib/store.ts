@@ -7,6 +7,11 @@ import { parseArtworkDataUrl } from "./artwork";
 import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
 import { isValidEmail } from "./email";
 import { loadStoreRaw, saveStoreRaw } from "./persist";
+import {
+  parseReceivedAmount,
+  parseReceivedCurrency,
+  parseReceivedMethod,
+} from "./received";
 import type {
   InventoryResponse,
   LivePosition,
@@ -36,6 +41,8 @@ const emptyState = (): PositionState => ({
   thanksEmailSentAt: "",
   receivedAmount: 0,
   receivedConfirmedAt: "",
+  receivedMethod: "",
+  receivedCurrency: "",
 });
 
 function seedStore(): StoreShape {
@@ -139,6 +146,8 @@ export function hydratePositions(
       phone: options.includePrivate ? state.phone : "",
       receivedAmount: options.includePrivate ? state.receivedAmount || 0 : 0,
       receivedConfirmedAt: options.includePrivate ? state.receivedConfirmedAt || "" : "",
+      receivedMethod: options.includePrivate ? state.receivedMethod || "" : "",
+      receivedCurrency: options.includePrivate ? state.receivedCurrency || "" : "",
       name: copy.name,
       description: copy.description,
       benefits: [...copy.benefits],
@@ -397,12 +406,6 @@ function nextAdminLogo(input: string | undefined, current: string) {
   return parseArtworkDataUrl(trimmed);
 }
 
-function parseReceivedAmount(value: unknown) {
-  const raw = typeof value === "number" ? value : Number(String(value).trim().replace(",", "."));
-  if (!Number.isFinite(raw) || raw <= 0 || raw > 50_000) throw new Error("INVALID_AMOUNT");
-  return Math.round(raw * 100) / 100;
-}
-
 export async function adminUpdateSpot(input: {
   positionId: number;
   status?: SpotStatus;
@@ -413,6 +416,8 @@ export async function adminUpdateSpot(input: {
   release?: boolean;
   thanksEmailSentAt?: string;
   receivedAmount?: number | string;
+  receivedMethod?: string;
+  receivedCurrency?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -452,6 +457,18 @@ export async function adminUpdateSpot(input: {
           : confirmingReceived
             ? new Date().toISOString()
             : (current.receivedConfirmedAt || "");
+      const nextReceivedMethod =
+        nextStatus !== "sold"
+          ? ""
+          : confirmingReceived
+            ? parseReceivedMethod(input.receivedMethod)
+            : (current.receivedMethod || "");
+      const nextReceivedCurrency =
+        nextStatus !== "sold"
+          ? ""
+          : confirmingReceived
+            ? parseReceivedCurrency(input.receivedCurrency)
+            : (current.receivedCurrency || "");
       if (nextStatus === "sold" && current.status !== "sold") {
         store.payments.push({
           id: token(),
@@ -483,6 +500,8 @@ export async function adminUpdateSpot(input: {
         thanksEmailSentAt: nextThanksSent,
         receivedAmount: nextReceivedAmount,
         receivedConfirmedAt: nextReceivedAt,
+        receivedMethod: nextReceivedMethod,
+        receivedCurrency: nextReceivedCurrency,
         reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
         reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:

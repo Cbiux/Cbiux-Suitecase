@@ -55,5 +55,7 @@ export function mailErrorLabel(code: string) {
   if (code === "TOO_LONG") return "Algún campo es demasiado largo.";
   if (code === "UPDATE_FAILED") return "No se pudo guardar.";
   if (code === "INVALID_AMOUNT") return "Anotá un monto recibido mayor a 0.";
+  if (code === "INVALID_METHOD") return "Elegí si fue SINPE, crypto o en especie.";
+  if (code === "INVALID_CURRENCY") return "Elegí si el monto es en dólares o colones.";
   return code;
 }
