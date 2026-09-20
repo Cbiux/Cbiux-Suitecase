@@ -7,7 +7,7 @@ import { AdminThanksCard } from "./admin-thanks";
 import { AdminThanksMail } from "./admin-thanks-mail";
 import { CoordContacts } from "./coord-contacts";
 import { ThemeToggle } from "./theme-toggle";
-import { adminGhostBtn, formatWhen, Stat, StatusPill } from "./admin-ui";
+import { adminGhostBtn, formatWhen, ReceivedAccountsCard, Stat, StatusPill } from "./admin-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -246,15 +246,20 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
         <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Pendientes" value={String(pendingSpots.length + pendingOffers.length)} />
           <Stat label="Vendidas" value={String(sold.length)} />
-          <Stat label="Recibido" value={accounts.line} />
           <Stat label="Sin anotar" value={String(accounts.missing)} />
+          <Stat label="Correos enviados" value={String(mailsSent)} />
+          <div className="col-span-2 md:col-span-4">
+            <ReceivedAccountsCard accounts={accounts} />
+          </div>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Vendidas" value={String(sold.length)} />
-          <Stat label="Recibido" value={accounts.line} />
           <Stat label="Sin anotar" value={String(accounts.missing)} />
           <Stat label="Correos enviados" value={String(mailsSent)} />
+          <div className="col-span-2 md:col-span-4">
+            <ReceivedAccountsCard accounts={accounts} />
+          </div>
         </div>
       )}
 

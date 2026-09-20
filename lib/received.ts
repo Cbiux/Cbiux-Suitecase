@@ -1,4 +1,5 @@
 import type { LivePosition, ReceivedCurrency, ReceivedMethod } from "./types";
+import { USD_CRC_RATE, crcToUsd, usdToCrcExact } from "./currency";
 
 const METHODS: ReceivedMethod[] = ["sinpe", "crypto", "in_kind"];
 const CURRENCIES: ReceivedCurrency[] = ["usd", "crc"];
@@ -85,12 +86,28 @@ export function summarizeReceived(spots: LivePosition[]) {
 
 export function formatReceivedBookkeeping(spots: LivePosition[]) {
   const summary = summarizeReceived(spots);
-  const cash = `${formatReceivedMoney(summary.usd, "usd")} · ${formatReceivedMoney(summary.crc, "crc")}`;
+  const cashUsdTotal = Math.round((summary.usd + crcToUsd(summary.crc)) * 100) / 100;
+  const cashCrcTotal = usdToCrcExact(summary.usd) + summary.crc;
+  const kindUsdTotal = Math.round((summary.inKindUsd + crcToUsd(summary.inKindCrc)) * 100) / 100;
+  const kindCrcTotal = usdToCrcExact(summary.inKindUsd) + summary.inKindCrc;
+  const cash = `${formatReceivedMoney(cashUsdTotal, "usd")} · ${formatReceivedMoney(cashCrcTotal, "crc")}`;
+  const recorded = `${formatReceivedMoney(summary.usd, "usd")} USD + ${formatReceivedMoney(summary.crc, "crc")} CRC`;
   const kindParts: string[] = [];
-  if (summary.inKindUsd) kindParts.push(formatReceivedMoney(summary.inKindUsd, "usd"));
-  if (summary.inKindCrc) kindParts.push(formatReceivedMoney(summary.inKindCrc, "crc"));
+  if (kindUsdTotal) kindParts.push(formatReceivedMoney(kindUsdTotal, "usd"));
+  if (kindCrcTotal) kindParts.push(formatReceivedMoney(kindCrcTotal, "crc"));
   const kind = summary.inKind
-    ? ` · ${summary.inKind} en especie${kindParts.length ? ` (aprox. ${kindParts.join(" · ")})` : ""}`
+    ? `${summary.inKind} patrocinio${summary.inKind === 1 ? "" : "s"} · aprox. ${kindParts.join(" · ")}`
     : "";
-  return { ...summary, cash, line: cash + kind };
+  return {
+    ...summary,
+    cashUsdTotal,
+    cashCrcTotal,
+    kindUsdTotal,
+    kindCrcTotal,
+    cash,
+    recorded,
+    kind,
+    rateNote: `tipo ₡${USD_CRC_RATE} por USD`,
+    line: cash,
+  };
 }

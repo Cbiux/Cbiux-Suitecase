@@ -36,6 +36,33 @@ export function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+export function ReceivedAccountsCard({
+  accounts,
+}: {
+  accounts: {
+    cash: string;
+    recorded: string;
+    kind: string;
+    rateNote: string;
+  };
+}) {
+  return (
+    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+      <span className="mono-label">Efectivo real</span>
+      <strong className="mt-1 block text-lg font-medium">{accounts.cash}</strong>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Anotado: {accounts.recorded} · {accounts.rateNote}
+      </p>
+      {accounts.kind ? (
+        <p className="mt-2 text-sm">
+          <span className="mono-label">En especie</span>
+          <span className="mt-0.5 block font-medium">{accounts.kind}</span>
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export const adminGhostBtn =
   "inline-flex h-11 items-center rounded-full border border-border px-4 font-mono text-[10px] font-semibold tracking-[0.12em] disabled:opacity-50";
 

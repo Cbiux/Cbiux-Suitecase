@@ -9,6 +9,14 @@ export function usdToCrc(usd: number) {
   return Math.round(raw / CRC_ROUND) * CRC_ROUND;
 }
 
+export function usdToCrcExact(usd: number) {
+  return Math.round(usd * USD_CRC_RATE);
+}
+
+export function crcToUsd(crc: number) {
+  return Math.round((crc / USD_CRC_RATE) * 100) / 100;
+}
+
 export function formatMoney(usd: number, currency: Currency) {
   if (currency === "usd") return `$${usd}`;
   const crc = String(usdToCrc(usd));

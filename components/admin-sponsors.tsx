@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminArtwork } from "@/components/admin-artwork";
-import { adminActionBtn, formatWhen, mailErrorLabel, StatusPill } from "@/components/admin-ui";
+import { adminActionBtn, formatWhen, mailErrorLabel, ReceivedAccountsCard, StatusPill } from "@/components/admin-ui";
 import { padSpot } from "@/lib/positions";
 import { whatsappHref } from "@/lib/phone";
 import { isValidEmail } from "@/lib/email";
@@ -45,15 +45,16 @@ export function AdminSponsors({
         Editá marca, correo y teléfono de cada posición. Liberar borra esos datos y deja el spot libre.
         {missingEmail ? ` ${missingEmail} confirmados o reservados no tienen correo: no se les puede mandar el pack.` : ""}
       </p>
-      <p className="mt-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
-        <span className="font-medium">Cuentas:</span> {accounts.line}
-        {accounts.missing
-          ? ` · ${accounts.missing} vendidos sin anotar`
-          : sold.length
-            ? " · todos los vendidos tienen monto"
-            : ""}
-        .
-      </p>
+      <div className="mt-3">
+        <ReceivedAccountsCard accounts={accounts} />
+        <p className="mt-2 text-sm text-muted-foreground">
+          {accounts.missing
+            ? `${accounts.missing} vendidos sin anotar.`
+            : sold.length
+              ? "Todos los vendidos tienen monto."
+              : "Todavía no hay vendidos anotados."}
+        </p>
+      </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {positions.map((spot) => (
           <SponsorCard
