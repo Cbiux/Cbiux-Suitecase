@@ -14,6 +14,7 @@ type MailStatus = {
   from: string;
   replyTo: string;
   hasBcc: boolean;
+  testingFrom?: boolean;
 };
 
 export function AdminThanksMail({
@@ -123,10 +124,27 @@ export function AdminThanksMail({
           verificá un dominio y usá algo como <code className="font-mono text-[11px]">Cbiux &lt;hola@tu-dominio.com&gt;</code>.
         </p>
       )}
+      {status?.testingFrom ? (
+        <p className="mt-4 rounded-2xl border border-[#e6b800] bg-[#fff8e4] p-4 text-sm text-[#6b4f00] dark:border-[#ffd54a] dark:bg-[#4a3a10] dark:text-[#ffd54a]">
+          <code className="font-mono text-[11px]">MAIL_FROM</code> usa el dominio de prueba de Resend
+          (<code className="font-mono text-[11px]">resend.dev</code>). Con eso Resend solo acepta mandar a tu
+          propio correo, no a patrocinadores. En{" "}
+          <a
+            href="https://resend.com/domains"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            resend.com/domains
+          </a>{" "}
+          verificá un dominio y cambiá <code className="font-mono text-[11px]">MAIL_FROM</code> a algo como{" "}
+          <code className="font-mono text-[11px]">Cbiux &lt;hola@tu-dominio.com&gt;</code>.
+        </p>
+      ) : null}
       {status?.configured ? (
         <p className="mt-3 font-mono text-[10px] text-muted-foreground">
           From {status.from}
-          {status.hasBcc ? " · BCC activo" : ""}
+          {status.hasBcc && !status.testingFrom ? " · BCC activo" : ""}
         </p>
       ) : null}
 

@@ -1,7 +1,7 @@
 import { isAdminRequest } from "@/lib/admin";
 import { isValidEmail } from "@/lib/email";
 import { adminList, markThanksEmailSent } from "@/lib/store";
-import { sendThanksEmail, thanksMailStatus } from "@/lib/thanks-mail";
+import { sendThanksEmail, thanksMailStatus, classifyMailError } from "@/lib/thanks-mail";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -68,9 +68,12 @@ export async function POST(request: Request) {
   } catch (error) {
     const message = error instanceof Error ? error.message : "MAIL_SEND_FAILED";
     const code =
-      message === "MAIL_NOT_CONFIGURED" || message === "IMAGE_TOO_LARGE"
+      message === "MAIL_NOT_CONFIGURED" ||
+      message === "IMAGE_TOO_LARGE" ||
+      message === "MAIL_TESTING_DOMAIN"
         ? message
-        : "MAIL_SEND_FAILED";
+        : classifyMailError(message);
+    console.error("[thanks-mail] send failed", message);
     return Response.json({ error: code, detail: message }, { status: 400 });
   }
 

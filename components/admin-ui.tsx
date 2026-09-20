@@ -73,6 +73,9 @@ export function mailErrorLabel(code: string) {
   if (code === "MAIL_NOT_CONFIGURED") {
     return "Falta configurar Resend (RESEND_API_KEY y MAIL_FROM con un dominio verificado).";
   }
+  if (code === "MAIL_TESTING_DOMAIN") {
+    return "Resend está en modo prueba (MAIL_FROM usa resend.dev). Solo puede mandar a tu propio correo. Verificá un dominio en resend.com/domains y cambiá MAIL_FROM a Cbiux <hola@tu-dominio.com>.";
+  }
   if (code === "MISSING_EMAIL" || code === "INVALID_EMAIL") return "Este patrocinador no tiene un correo válido.";
   if (code === "NO_LOGO") return "Falta el logo para armar las dos imágenes.";
   if (code === "SPOT_AVAILABLE") return "El spot está libre.";
