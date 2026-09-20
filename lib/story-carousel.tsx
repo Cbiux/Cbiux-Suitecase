@@ -20,7 +20,7 @@ export const STORY_CAPTION = `Soy estudiante de Costa Rica. Este año voy a repr
 
 No voy solo por mí. Voy para abrir la puerta a más estudiantes ticos: que se vea que se puede llegar, documentar el camino y traer esas oportunidades de vuelta.
 
-Para financiarlo vendo 22 espacios en mi maleta de cabina. Tu logo viaja conmigo. Desde $45. SINPE o USDC.
+Para financiarlo vendo 34 espacios en mi maleta de cabina. Tu logo viaja conmigo. Desde $45. SINPE o USDC.
 
 Si me ayudás, no solo viaja tu marca. Viaja la posibilidad de que más estudiantes de CR se animen.
 
@@ -321,7 +321,7 @@ function slideIdea(suitcase: string) {
       <Title lines={["Vendo espacio"]} accent="en mi maleta." />
       <Body
         lines={[
-          "22 posiciones en cabina 55 × 40 × 20.",
+          "34 posiciones en cabina 55 × 40 × 20.",
           "Tu logo viaja. Más estudiantes se animan.",
         ]}
       />
@@ -339,7 +339,7 @@ function slideIdea(suitcase: string) {
         <img src={suitcase} alt="" width={420} height={484} style={{ objectFit: "contain" }} />
       </div>
       <div style={{ display: "flex", marginTop: 24 }}>
-        <Stat value="22" label="POSICIONES" />
+        <Stat value="34" label="POSICIONES" />
         <Stat value="$45" label="DESDE" />
         <Stat value="3" label="PIEZAS" />
       </div>
@@ -419,7 +419,7 @@ function slideCta() {
     <Frame n={7} kicker="RESERVÁ UN SPOT">
       <Title lines={["Apoyá a un"]} accent="estudiante tico." />
       <Body
-        lines={["22 posiciones. Desde $45.", "Cierre el 10 de octubre de 2026 o al agotarse."]}
+        lines={["34 posiciones. Desde $45.", "Cierre el 10 de octubre de 2026 o al agotarse."]}
       />
       <div
         style={{
@@ -442,7 +442,7 @@ function slideCta() {
         </div>
       </div>
       <div style={{ display: "flex", marginTop: 40 }}>
-        <Stat value="22" label="POSICIONES" />
+        <Stat value="34" label="POSICIONES" />
         <Stat value="$45" label="DESDE" />
         <Stat value="CR" label="EN ESAS SALAS" />
       </div>

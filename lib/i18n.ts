@@ -4,7 +4,7 @@ export const copy = {
   es: {
     metaTitle: "Poné tu marca en mi ruta a Europa e India | Cbiux",
     metaDescription:
-      "22 posiciones en la maleta de cabina de Sebastián (Cbiux), 55×40×20 cm, rumbo a Compile Amsterdam, Europa y Devcon India. Vlog diario de todo el trip. Desde $45.",
+      "34 posiciones en la maleta de cabina de Sebastián (Cbiux), 55×40×20 cm, rumbo a Compile Amsterdam, Europa y Devcon India. Vlog diario de todo el trip. Desde $45.",
     nav: {
       positions: "POSICIONES",
       share: "APOYO",
@@ -46,7 +46,7 @@ export const copy = {
       usdc: "SINPE MÓVIL · USDC EVM · USDC STELLAR",
       dates: "SEP 20 → NOV 2026",
       url: "cbiux-suitcase.vercel.app",
-      signal: "Cabina 55×40×20 · 22 spots · vlog diario",
+      signal: "Cabina 55×40×20 · 34 spots · vlog diario",
     },
     faces: {
       front: "FRENTE",
@@ -76,7 +76,7 @@ export const copy = {
       tripValue: "20 sep – inicios de nov 2026",
     },
     pick: {
-      kicker: "maleta de cabina · 22 placements",
+      kicker: "maleta de cabina · 34 placements",
       title: "Elegí una posición",
       live: "Estado de pago en vivo",
       checking: "Revisando disponibilidad",
@@ -162,7 +162,7 @@ export const copy = {
         {
           n: "STEP 01",
           title: "Elegí una posición",
-          body: "Revisá precio, tamaño y exposición de una de las 22 posiciones numeradas.",
+          body: "Revisá precio, tamaño y exposición de una de las 34 posiciones numeradas.",
         },
         {
           n: "STEP 02",
@@ -271,7 +271,7 @@ export const copy = {
       videoCta: "HABLAR DEL SCOPE",
     },
     cta: {
-      kicker: "solo 22 posiciones",
+      kicker: "solo 34 posiciones",
       title: "Llevá tu marca de CR a Devcon",
       body: "Cierre: 10 de octubre de 2026 o cuando se agoten.",
       claim: "RESERVÁ TU SPOT",
@@ -544,7 +544,7 @@ export const copy = {
       },
       14: {
         name: "Lado izq. inferior derecho",
-        description: "El último spot izquierdo antes de las ruedas.",
+        description: "Fila baja original del costado izquierdo, ahora con una fila extra debajo.",
         benefits: [
           "Posición independiente en el costado",
           "Aparición en el vlog diario del trip",
@@ -588,7 +588,7 @@ export const copy = {
       },
       18: {
         name: "Lado der. inferior derecho",
-        description: "La última esquina. Sigue siendo parte de todo el viaje.",
+        description: "Esquina baja original del costado derecho, con una fila extra hacia las ruedas.",
         benefits: [
           "Posición independiente en el costado",
           "Aparición en el vlog diario del trip",
@@ -641,6 +641,138 @@ export const copy = {
         ],
         logoGuidance: "Recomendado: logo compacto.",
       },
+      23: {
+        name: "Lado izq. 2ª fila izquierdo",
+        description: "Segunda fila del costado izquierdo. Cubre el hueco entre la tapa y las ruedas.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo o marca corta.",
+      },
+      24: {
+        name: "Lado izq. 2ª fila derecho",
+        description: "Misma fila media-alta del costado izquierdo, hacia el borde de las ruedas.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo o marca corta.",
+      },
+      25: {
+        name: "Lado izq. 3ª fila izquierdo",
+        description: "Tercera fila del costado izquierdo, todavía a la altura de la concha.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      26: {
+        name: "Lado izq. 3ª fila derecho",
+        description: "Tercera fila del costado izquierdo, lado rueda, antes de la fila baja.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      27: {
+        name: "Lado der. 2ª fila izquierdo",
+        description: "Segunda fila del costado derecho. Cubre el hueco entre la tapa y las ruedas.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo o marca corta.",
+      },
+      28: {
+        name: "Lado der. 2ª fila derecho",
+        description: "Misma fila media-alta del costado derecho, hacia el borde de las ruedas.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo o marca corta.",
+      },
+      29: {
+        name: "Lado der. 3ª fila izquierdo",
+        description: "Tercera fila del costado derecho, todavía a la altura de la concha.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      30: {
+        name: "Lado der. 3ª fila derecho",
+        description: "Tercera fila del costado derecho, lado rueda, antes de la fila baja.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      31: {
+        name: "Lado izq. fila extra izquierda",
+        description: "La fila extra sobre las ruedas, costado izquierdo, hacia la cremallera.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      32: {
+        name: "Lado izq. fila extra derecha",
+        description: "La fila extra sobre las ruedas, costado izquierdo, hacia el borde.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      33: {
+        name: "Lado der. fila extra izquierda",
+        description: "La fila extra sobre las ruedas, costado derecho, hacia la cremallera.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
+      34: {
+        name: "Lado der. fila extra derecha",
+        description: "La fila extra sobre las ruedas, costado derecho, hacia el borde.",
+        benefits: [
+          "Posición independiente en el costado",
+          "Aparición en el vlog diario del trip",
+          "Tag en el thank-you post",
+          "Recap final del trip",
+        ],
+        logoGuidance: "Recomendado: isotipo.",
+      },
     } as Record<
       number,
       { name: string; description: string; benefits: string[]; logoGuidance: string }
@@ -649,7 +781,7 @@ export const copy = {
   en: {
     metaTitle: "Put your brand on my road to Europe & India | Cbiux",
     metaDescription:
-      "22 spots on Sebastián (Cbiux)'s carry-on cabin bag, 55×40×20 cm, from Costa Rica to Compile, Europe and Devcon India. Daily vlog for the whole trip. From $45.",
+      "34 spots on Sebastián (Cbiux)'s carry-on cabin bag, 55×40×20 cm, from Costa Rica to Compile, Europe and Devcon India. Daily vlog for the whole trip. From $45.",
     nav: {
       positions: "POSITIONS",
       share: "SUPPORT",
@@ -690,7 +822,7 @@ export const copy = {
       usdc: "SINPE MÓVIL · USDC EVM · USDC STELLAR",
       dates: "SEP 20 → NOV 2026",
       url: "cbiux-suitcase.vercel.app",
-      signal: "Carry-on 55×40×20 · 22 spots · daily vlog",
+      signal: "Carry-on 55×40×20 · 34 spots · daily vlog",
     },
     faces: {
       front: "FRONT",
@@ -720,7 +852,7 @@ export const copy = {
       tripValue: "Sep 20 – early Nov 2026",
     },
     pick: {
-      kicker: "carry-on cabin · 22 placements",
+      kicker: "carry-on cabin · 34 placements",
       title: "Pick a spot",
       live: "Live payment status",
       checking: "Checking availability",
@@ -806,7 +938,7 @@ export const copy = {
         {
           n: "STEP 01",
           title: "Pick a position",
-          body: "Choose one of the 22 numbered spots and review price, size and included exposure.",
+          body: "Choose one of the 34 numbered spots and review price, size and included exposure.",
         },
         {
           n: "STEP 02",
@@ -915,7 +1047,7 @@ export const copy = {
       videoCta: "SCOPE A VIDEO",
     },
     cta: {
-      kicker: "22 spots only",
+      kicker: "34 spots only",
       title: "Take your brand from CR to Devcon",
       body: "Sales close October 10 2026 or when sold out.",
       claim: "CLAIM YOUR SPOT",
@@ -1184,7 +1316,7 @@ export const copy = {
       },
       14: {
         name: "Left side lower right",
-        description: "The last left-side spot before the wheels take over.",
+        description: "Original lower-right left-side spot, now with an extra row below toward the wheels.",
         benefits: [
           "Independent left-side position",
           "Daily trip vlog appearance",
@@ -1228,7 +1360,7 @@ export const copy = {
       },
       18: {
         name: "Right side lower right",
-        description: "The smallest final corner, still part of the full journey.",
+        description: "Original lower-right corner on the right side, with an extra row below toward the wheels.",
         benefits: [
           "Independent right-side position",
           "Daily trip vlog appearance",
@@ -1280,6 +1412,138 @@ export const copy = {
           "Final trip recap appearance",
         ],
         logoGuidance: "Recommended: compact logo.",
+      },
+      23: {
+        name: "Left side row 2 left",
+        description: "Second row on the left side. Fills the gap between the top row and the wheels.",
+        benefits: [
+          "Independent left-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: wordmark or icon.",
+      },
+      24: {
+        name: "Left side row 2 right",
+        description: "Same upper-middle left-side row, toward the wheel edge.",
+        benefits: [
+          "Independent left-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: wordmark or icon.",
+      },
+      25: {
+        name: "Left side row 3 left",
+        description: "Third row on the left side, still on the shell before the lowest band.",
+        benefits: [
+          "Independent left-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      26: {
+        name: "Left side row 3 right",
+        description: "Third left-side row, wheel edge, just above the bottom pair.",
+        benefits: [
+          "Independent left-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      27: {
+        name: "Right side row 2 left",
+        description: "Second row on the right side. Fills the gap between the top row and the wheels.",
+        benefits: [
+          "Independent right-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: wordmark or icon.",
+      },
+      28: {
+        name: "Right side row 2 right",
+        description: "Same upper-middle right-side row, toward the wheel edge.",
+        benefits: [
+          "Independent right-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: wordmark or icon.",
+      },
+      29: {
+        name: "Right side row 3 left",
+        description: "Third row on the right side, still on the shell before the lowest band.",
+        benefits: [
+          "Independent right-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      30: {
+        name: "Right side row 3 right",
+        description: "Third right-side row, wheel edge, just above the bottom pair.",
+        benefits: [
+          "Independent right-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      31: {
+        name: "Left side extra-row left",
+        description: "Extra row above the wheels on the left side, toward the zipper.",
+        benefits: [
+          "Independent left-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      32: {
+        name: "Left side extra-row right",
+        description: "Extra row above the wheels on the left side, toward the outer edge.",
+        benefits: [
+          "Independent left-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      33: {
+        name: "Right side extra-row left",
+        description: "Extra row above the wheels on the right side, toward the zipper.",
+        benefits: [
+          "Independent right-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
+      },
+      34: {
+        name: "Right side extra-row right",
+        description: "Extra row above the wheels on the right side, toward the outer edge.",
+        benefits: [
+          "Independent right-side position",
+          "Daily trip vlog appearance",
+          "Sponsor thank-you post tag",
+          "Final trip recap appearance",
+        ],
+        logoGuidance: "Recommended: icon mark.",
       },
     } as Record<
       number,

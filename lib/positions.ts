@@ -7,7 +7,7 @@ export const TRIP = {
   salesClose: "10 Oct 2026",
   artworkDays: 5,
   startPrice: 45,
-  spotCount: 22,
+  spotCount: 34,
 } as const;
 
 /**
@@ -57,21 +57,42 @@ function sideBox(cmW: number, cmH: number, widthPct: number) {
 }
 
 const SIDE = {
-  leftX: 33.8,
-  rightX: 50.4,
-  w: 16.0,
-  // 10×10 cm en foto lateral: antes h=21.2 (muy alto). Cuadrado real ≈ 12.0%
+  leftX: 34.6,
+  rightX: 50.0,
+  w: 14.6,
+  // 10×10 cm. 2×5 cubre hasta las ruedas (la 5ª fila es el hueco que quedaba abajo).
   ...(() => {
-    const cell = sideBox(10, 10, 16.0);
-    const topY = 44.8;
-    const gap = 9.2;
+    const cell = sideBox(10, 10, 14.6);
+    const topY = 30;
+    const gap = 0.32;
     return {
       h: cell.height,
-      topY,
-      bottomY: Number((topY + cell.height + gap).toFixed(2)),
+      rowsY: [0, 1, 2, 3, 4].map((row) =>
+        Number((topY + row * (cell.height + gap)).toFixed(2)),
+      ),
     };
   })(),
 } as const;
+
+function sideSpot(
+  id: number,
+  face: Face,
+  price: number,
+  col: 0 | 1,
+  row: 0 | 1 | 2 | 3 | 4,
+): PositionCatalog {
+  return {
+    id,
+    face,
+    price,
+    size: "10 × 10 cm",
+    tier: "side",
+    x: col === 0 ? SIDE.leftX : SIDE.rightX,
+    y: SIDE.rowsY[row],
+    width: SIDE.w,
+    height: SIDE.h,
+  };
+}
 
 export const POSITION_CATALOG: PositionCatalog[] = [
   {
@@ -228,94 +249,27 @@ export const POSITION_CATALOG: PositionCatalog[] = [
     width: FRONT.cellW,
     height: FRONT.cellH,
   },
-  {
-    id: 11,
-    face: "left",
-    price: 65,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.leftX,
-    y: SIDE.topY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 12,
-    face: "left",
-    price: 55,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.rightX,
-    y: SIDE.topY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 13,
-    face: "left",
-    price: 50,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.leftX,
-    y: SIDE.bottomY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 14,
-    face: "left",
-    price: 45,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.rightX,
-    y: SIDE.bottomY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 15,
-    face: "right",
-    price: 65,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.leftX,
-    y: SIDE.topY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 16,
-    face: "right",
-    price: 55,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.rightX,
-    y: SIDE.topY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 17,
-    face: "right",
-    price: 50,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.leftX,
-    y: SIDE.bottomY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
-  {
-    id: 18,
-    face: "right",
-    price: 45,
-    size: "10 × 10 cm",
-    tier: "side",
-    x: SIDE.rightX,
-    y: SIDE.bottomY,
-    width: SIDE.w,
-    height: SIDE.h,
-  },
+  // Vendidos con el layout de 4: se mantienen esos precios.
+  sideSpot(11, "left", 65, 0, 0),
+  sideSpot(12, "left", 55, 1, 0),
+  sideSpot(23, "left", 55, 0, 1),
+  sideSpot(24, "left", 50, 1, 1),
+  sideSpot(25, "left", 50, 0, 2),
+  sideSpot(26, "left", 45, 1, 2),
+  sideSpot(13, "left", 50, 0, 3),
+  sideSpot(14, "left", 45, 1, 3),
+  sideSpot(31, "left", 45, 0, 4),
+  sideSpot(32, "left", 45, 1, 4),
+  sideSpot(15, "right", 60, 0, 0),
+  sideSpot(16, "right", 55, 1, 0),
+  sideSpot(27, "right", 55, 0, 1),
+  sideSpot(28, "right", 50, 1, 1),
+  sideSpot(29, "right", 50, 0, 2),
+  sideSpot(30, "right", 45, 1, 2),
+  sideSpot(17, "right", 50, 0, 3),
+  sideSpot(18, "right", 45, 1, 3),
+  sideSpot(33, "right", 45, 0, 4),
+  sideSpot(34, "right", 45, 1, 4),
 ];
 
 export function padSpot(id: number) {

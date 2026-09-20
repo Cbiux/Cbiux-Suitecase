@@ -5,7 +5,7 @@ import { join } from "node:path";
 export const ogSize = { width: 1200, height: 630 };
 export const promoSize = { width: 1080, height: 1080 };
 export const ogAlt =
-  "cbiux: 22 posiciones en una maleta de cabina rumbo a Europa e India. Desde $45.";
+  "cbiux: 34 posiciones en una maleta de cabina rumbo a Europa e India. Desde $45.";
 
 const SPOTS = [
   { id: "01", left: "23.8%", top: "27.6%", width: "52.8%", height: "17.18%" },
@@ -91,7 +91,7 @@ function Headline({ large }: { large?: boolean }) {
 
 function Stats({ compact }: { large?: boolean; compact?: boolean }) {
   const items = [
-    { value: "22", label: "POSICIONES" },
+    { value: "34", label: "POSICIONES" },
     { value: "$45", label: "DESDE" },
     { value: "3", label: "PIEZAS" },
   ];
@@ -223,7 +223,7 @@ export async function renderOgImage() {
             maxWidth: 560,
           }}
         >
-          22 spots en mi maleta de cabina. Vlog diario de Costa Rica a Devcon.
+          34 spots en mi maleta de cabina. Vlog diario de Costa Rica a Devcon.
         </div>
         <div style={{ display: "flex", marginTop: 28 }}>
           <Stats />
@@ -261,7 +261,7 @@ export async function renderOgImage() {
             color: "#147a4b",
           }}
         >
-          ● 22 SPOTS AVAILABLE
+          ● 34 SPOTS AVAILABLE
         </div>
         <Suitcase src={src} height={520} />
       </div>

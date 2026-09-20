@@ -80,8 +80,8 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const shareText = useMemo(() => {
     const n = padSpot(selected.id);
     return locale === "es"
-      ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 22 spots · desde ${formatMoney(45, currency)} · USDC`
-      : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 22 spots · from ${formatMoney(45, currency)} · USDC`;
+      ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 34 spots · desde ${formatMoney(45, currency)} · USDC`
+      : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 34 spots · from ${formatMoney(45, currency)} · USDC`;
   }, [selected, brandName, locale, currency]);
 
   const spec = artworkSpec(selected.size);
