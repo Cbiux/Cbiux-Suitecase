@@ -57,7 +57,7 @@ export function AdminSponsors({
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {positions.map((spot) => (
           <SponsorCard
-            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.receivedMethod}-${spot.receivedCurrency}-${spot.logo ? "logo" : "empty"}`}
+            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.receivedMethod}-${spot.receivedCurrency}-${spot.receivedInKindItems}-${spot.logo ? "logo" : "empty"}`}
             spot={spot}
             onUpdate={onUpdate}
             onSend={onSend}
@@ -93,6 +93,7 @@ function SponsorCard({
   const [currency, setCurrency] = useState<ReceivedCurrency>(
     spot.receivedCurrency || defaultReceivedCurrency(spot.receivedMethod || guessReceivedMethod(spot.network)),
   );
+  const [inKindItems, setInKindItems] = useState(spot.receivedInKindItems || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const missingMail = status !== "available" && !email.trim();
@@ -138,12 +139,17 @@ function SponsorCard({
       setError(mailErrorLabel("INVALID_METHOD"));
       return;
     }
+    if (method === "in_kind" && inKindItems.trim().length < 2) {
+      setError(mailErrorLabel("INVALID_IN_KIND"));
+      return;
+    }
     setBusy(true);
     try {
       await onUpdate(spot.id, {
         receivedAmount: received,
         receivedMethod: method,
         receivedCurrency: currency,
+        receivedInKindItems: inKindItems,
       });
     } catch (err) {
       setError(
@@ -261,47 +267,35 @@ function SponsorCard({
 
       {status === "sold" ? (
         <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor={`method-${spot.id}`}>Cómo te llegó</Label>
-              <select
-                id={`method-${spot.id}`}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                value={method}
-                onChange={(event) => {
-                  const next = event.target.value as ReceivedMethod | "";
-                  setMethod(next);
-                  if (!spot.receivedConfirmedAt) {
-                    setCurrency(defaultReceivedCurrency(next));
-                  }
-                }}
-              >
-                <option value="">elegí…</option>
-                <option value="sinpe">SINPE</option>
-                <option value="crypto">crypto</option>
-                <option value="in_kind">en especie</option>
-              </select>
+          <ChoicePills
+            label="Cómo te llegó"
+            value={method}
+            options={[
+              { id: "sinpe", label: "SINPE" },
+              { id: "crypto", label: "crypto" },
+              { id: "in_kind", label: "en especie" },
+            ]}
+            onChange={(next) => {
+              setMethod(next);
+              if (!spot.receivedConfirmedAt) setCurrency(defaultReceivedCurrency(next));
+            }}
+          />
+          {method === "in_kind" ? (
+            <div className="mt-3 space-y-1.5">
+              <Label htmlFor={`inkind-${spot.id}`}>Artículo o artículos</Label>
+              <Input
+                id={`inkind-${spot.id}`}
+                placeholder="ej. 2 camisetas y una gorra"
+                value={inKindItems}
+                onChange={(event) => setInKindItems(event.target.value)}
+              />
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor={`currency-${spot.id}`}>Moneda</Label>
-              <select
-                id={`currency-${spot.id}`}
-                className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value as ReceivedCurrency)}
-              >
-                <option value="usd">dólares</option>
-                <option value="crc">colones</option>
-              </select>
-            </div>
-          </div>
+          ) : null}
           <div className="mt-3 space-y-1.5">
             <Label htmlFor={`received-${spot.id}`}>
-              {method === "in_kind"
-                ? `Valor aproximado del patrocinio (${currency === "crc" ? "colones" : "dólares"})`
-                : `Monto recibido (${currency === "crc" ? "colones" : "dólares"})`}
+              {method === "in_kind" ? "Precio aproximado" : "Monto recibido"}
             </Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Input
                 id={`received-${spot.id}`}
                 inputMode="decimal"
@@ -318,6 +312,16 @@ function SponsorCard({
                 onChange={(event) => setReceived(event.target.value)}
                 className="max-w-[10rem]"
               />
+              <ChoicePills
+                compact
+                label="Colones o dólares"
+                value={currency}
+                options={[
+                  { id: "crc", label: "₡ colones" },
+                  { id: "usd", label: "$ dólares" },
+                ]}
+                onChange={setCurrency}
+              />
               <button
                 type="button"
                 className={`${adminActionBtn} bg-primary text-primary-foreground border-transparent`}
@@ -331,7 +335,7 @@ function SponsorCard({
           <p className="mt-2 text-xs text-muted-foreground">
             Para tus cuentas. No cambia el precio público del spot.
             {spot.receivedConfirmedAt
-              ? ` Última confirmación: ${receivedMethodLabel(spot.receivedMethod)} · ${formatReceivedMoney(spot.receivedAmount, spot.receivedCurrency || "usd")}${spot.receivedMethod === "in_kind" ? " aprox." : ""} el ${formatWhen(spot.receivedConfirmedAt)}.`
+              ? ` Última confirmación: ${receivedMethodLabel(spot.receivedMethod)}${spot.receivedMethod === "in_kind" && spot.receivedInKindItems ? ` · ${spot.receivedInKindItems}` : ""} · ${formatReceivedMoney(spot.receivedAmount, spot.receivedCurrency || "usd")}${spot.receivedMethod === "in_kind" ? " aprox." : ""} el ${formatWhen(spot.receivedConfirmedAt)}.`
               : " Este confirmado todavía no tiene monto anotado."}
           </p>
         </div>
@@ -382,5 +386,44 @@ function SponsorCard({
       </div>
       {error ? <p className="mt-2 text-xs text-destructive">{mailErrorLabel(error)}</p> : null}
     </article>
+  );
+}
+
+function ChoicePills<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+  compact = false,
+}: {
+  label: string;
+  value: T | "";
+  options: { id: T; label: string }[];
+  onChange: (value: T) => void;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "" : "space-y-1.5"}>
+      {compact ? <span className="sr-only">{label}</span> : <p className="text-sm font-medium">{label}</p>}
+      <div
+        role="group"
+        aria-label={label}
+        className="flex overflow-hidden rounded-full border border-border bg-card"
+      >
+        {options.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            aria-pressed={value === option.id}
+            className={`min-h-8 px-3 font-mono text-[10px] font-semibold tracking-[0.12em] ${
+              value === option.id ? "bg-foreground text-background" : "text-muted-foreground"
+            }`}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

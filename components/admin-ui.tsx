@@ -57,5 +57,8 @@ export function mailErrorLabel(code: string) {
   if (code === "INVALID_AMOUNT") return "Anotá un monto recibido mayor a 0.";
   if (code === "INVALID_METHOD") return "Elegí si fue SINPE, crypto o en especie.";
   if (code === "INVALID_CURRENCY") return "Elegí si el monto es en dólares o colones.";
+  if (code === "INVALID_IN_KIND") {
+    return "Anotá el artículo o los artículos que te dieron en especie.";
+  }
   return code;
 }

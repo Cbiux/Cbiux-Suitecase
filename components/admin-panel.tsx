@@ -580,7 +580,7 @@ function PaymentsList({
             const spot = receivedById.get(payment.positionId);
             const received =
               spot?.receivedConfirmedAt && spot.receivedAmount
-                ? `${receivedMethodLabel(spot.receivedMethod) || "recibido"} ${formatReceivedMoney(spot.receivedAmount, spot.receivedCurrency || "usd")}${spot.receivedMethod === "in_kind" ? " aprox." : ""}`
+                ? `${receivedMethodLabel(spot.receivedMethod) || "recibido"}${spot.receivedMethod === "in_kind" && spot.receivedInKindItems ? ` · ${spot.receivedInKindItems}` : ""} ${formatReceivedMoney(spot.receivedAmount, spot.receivedCurrency || "usd")}${spot.receivedMethod === "in_kind" ? " aprox." : ""}`
                 : "sin anotar recibido";
             return (
               <p

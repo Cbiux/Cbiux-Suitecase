@@ -21,6 +21,13 @@ export function parseReceivedCurrency(value: unknown): ReceivedCurrency {
   throw new Error("INVALID_CURRENCY");
 }
 
+export function parseReceivedInKindItems(value: unknown, method: ReceivedMethod | "") {
+  const items = String(value ?? "").trim().replace(/\s+/g, " ");
+  if (method !== "in_kind") return "";
+  if (items.length < 2 || items.length > 200) throw new Error("INVALID_IN_KIND");
+  return items;
+}
+
 export function receivedMethodLabel(method: ReceivedMethod | "") {
   if (method === "sinpe") return "SINPE";
   if (method === "crypto") return "crypto";

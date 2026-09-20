@@ -38,6 +38,7 @@ export type PositionState = {
   receivedConfirmedAt: string;
   receivedMethod: ReceivedMethod | "";
   receivedCurrency: ReceivedCurrency | "";
+  receivedInKindItems: string;
 };
 
 export type LivePosition = PositionCatalog &

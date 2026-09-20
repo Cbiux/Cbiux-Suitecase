@@ -10,6 +10,7 @@ import { loadStoreRaw, saveStoreRaw } from "./persist";
 import {
   parseReceivedAmount,
   parseReceivedCurrency,
+  parseReceivedInKindItems,
   parseReceivedMethod,
 } from "./received";
 import type {
@@ -43,6 +44,7 @@ const emptyState = (): PositionState => ({
   receivedConfirmedAt: "",
   receivedMethod: "",
   receivedCurrency: "",
+  receivedInKindItems: "",
 });
 
 function seedStore(): StoreShape {
@@ -148,6 +150,7 @@ export function hydratePositions(
       receivedConfirmedAt: options.includePrivate ? state.receivedConfirmedAt || "" : "",
       receivedMethod: options.includePrivate ? state.receivedMethod || "" : "",
       receivedCurrency: options.includePrivate ? state.receivedCurrency || "" : "",
+      receivedInKindItems: options.includePrivate ? state.receivedInKindItems || "" : "",
       name: copy.name,
       description: copy.description,
       benefits: [...copy.benefits],
@@ -418,6 +421,7 @@ export async function adminUpdateSpot(input: {
   receivedAmount?: number | string;
   receivedMethod?: string;
   receivedCurrency?: string;
+  receivedInKindItems?: string;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -469,6 +473,12 @@ export async function adminUpdateSpot(input: {
           : confirmingReceived
             ? parseReceivedCurrency(input.receivedCurrency)
             : (current.receivedCurrency || "");
+      const nextReceivedInKindItems =
+        nextStatus !== "sold"
+          ? ""
+          : confirmingReceived
+            ? parseReceivedInKindItems(input.receivedInKindItems, nextReceivedMethod)
+            : (current.receivedInKindItems || "");
       if (nextStatus === "sold" && current.status !== "sold") {
         store.payments.push({
           id: token(),
@@ -502,6 +512,7 @@ export async function adminUpdateSpot(input: {
         receivedConfirmedAt: nextReceivedAt,
         receivedMethod: nextReceivedMethod,
         receivedCurrency: nextReceivedCurrency,
+        receivedInKindItems: nextReceivedInKindItems,
         reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
         reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:
