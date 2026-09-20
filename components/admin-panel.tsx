@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sendThanksMailForSpot } from "@/lib/admin-thanks-send";
-import { isValidEmail } from "@/lib/email";
 import { padSpot } from "@/lib/positions";
 import { whatsappHref } from "@/lib/phone";
 import type { LivePosition, OfferRecord, OfferStatus, PaymentRecord } from "@/lib/types";
@@ -100,9 +99,12 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
     () => data.positions.filter((spot) => spot.status === "sold"),
     [data.positions],
   );
-  const soldWithEmail = sold.filter((spot) => isValidEmail(spot.email)).length;
-  const soldWithoutEmail = sold.length - soldWithEmail;
   const mailsSent = data.positions.filter((spot) => Boolean(spot.thanksEmailSentAt)).length;
+  const receivedTotal = sold.reduce(
+    (sum, spot) => sum + (spot.receivedConfirmedAt ? spot.receivedAmount : 0),
+    0,
+  );
+  const missingReceived = sold.filter((spot) => !spot.receivedConfirmedAt).length;
 
   async function load() {
     const response = await fetch("/api/admin/spots", { cache: "no-store" });
@@ -239,15 +241,15 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
       {tab === "inbox" ? (
         <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Pendientes" value={String(pendingSpots.length + pendingOffers.length)} />
-          <Stat label="Reservas" value={String(pendingSpots.length)} />
-          <Stat label="Ofertas" value={String(pendingOffers.length)} />
           <Stat label="Vendidas" value={String(sold.length)} />
+          <Stat label="Recibido" value={`$${receivedTotal.toLocaleString("en-US")}`} />
+          <Stat label="Sin anotar" value={String(missingReceived)} />
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
           <Stat label="Vendidas" value={String(sold.length)} />
-          <Stat label="Con correo" value={String(soldWithEmail)} />
-          <Stat label="Sin correo" value={String(soldWithoutEmail)} />
+          <Stat label="Recibido" value={`$${receivedTotal.toLocaleString("en-US")}`} />
+          <Stat label="Sin anotar" value={String(missingReceived)} />
           <Stat label="Correos enviados" value={String(mailsSent)} />
         </div>
       )}
@@ -261,7 +263,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
             updateOffer={updateOffer}
           />
           <OffersList offers={data.offers} />
-          <PaymentsList payments={data.payments} />
+          <PaymentsList payments={data.payments} positions={data.positions} />
         </>
       ) : null}
 
@@ -550,21 +552,45 @@ function OffersList({ offers }: { offers: OfferRecord[] }) {
   );
 }
 
-function PaymentsList({ payments }: { payments: PaymentRecord[] }) {
+function PaymentsList({
+  payments,
+  positions,
+}: {
+  payments: PaymentRecord[];
+  positions: LivePosition[];
+}) {
+  const receivedById = new Map(
+    positions.map((spot) => [spot.id, spot] as const),
+  );
   return (
     <section className="mt-12 pb-8">
       <h2 className="text-xl font-medium">Pagos</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        El monto de cuentas es el que confirmás en Patrocinadores, no el precio listado del spot.
+      </p>
       <div className="mt-4 rounded-2xl border border-border bg-card">
         {payments.length === 0 ? (
           <p className="p-4 text-sm text-muted-foreground">Sin pagos verificados.</p>
         ) : (
-          payments.map((payment) => (
-            <p key={payment.id} className="border-b border-border p-4 font-mono text-xs last:border-0" suppressHydrationWarning>
-              #{padSpot(payment.positionId)} · {payment.brandName} · ${payment.amount} · {payment.network} ·{" "}
-              {formatWhen(payment.verifiedAt)} · {payment.txHash}
-              {payment.email ? ` · ${payment.email}` : ""}
-            </p>
-          ))
+          payments.map((payment) => {
+            const spot = receivedById.get(payment.positionId);
+            const received =
+              spot?.receivedConfirmedAt && spot.receivedAmount
+                ? `recibido $${spot.receivedAmount}`
+                : "sin anotar recibido";
+            return (
+              <p
+                key={payment.id}
+                className="border-b border-border p-4 font-mono text-xs last:border-0"
+                suppressHydrationWarning
+              >
+                #{padSpot(payment.positionId)} · {payment.brandName} · {received} · listado $
+                {spot?.price ?? payment.amount}{" "}
+                · {payment.network} · {formatWhen(payment.verifiedAt)} · {payment.txHash}
+                {payment.email ? ` · ${payment.email}` : ""}
+              </p>
+            );
+          })
         )}
       </div>
     </section>

@@ -32,6 +32,8 @@ export type PositionState = {
   checkoutToken: string;
   comprobante: string;
   thanksEmailSentAt: string;
+  receivedAmount: number;
+  receivedConfirmedAt: string;
 };
 
 export type LivePosition = PositionCatalog &

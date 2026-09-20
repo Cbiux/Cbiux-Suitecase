@@ -34,6 +34,8 @@ const emptyState = (): PositionState => ({
   checkoutToken: "",
   comprobante: "",
   thanksEmailSentAt: "",
+  receivedAmount: 0,
+  receivedConfirmedAt: "",
 });
 
 function seedStore(): StoreShape {
@@ -135,6 +137,8 @@ export function hydratePositions(
       ...state,
       comprobante: options.includePrivate ? state.comprobante : "",
       phone: options.includePrivate ? state.phone : "",
+      receivedAmount: options.includePrivate ? state.receivedAmount || 0 : 0,
+      receivedConfirmedAt: options.includePrivate ? state.receivedConfirmedAt || "" : "",
       name: copy.name,
       description: copy.description,
       benefits: [...copy.benefits],
@@ -393,6 +397,12 @@ function nextAdminLogo(input: string | undefined, current: string) {
   return parseArtworkDataUrl(trimmed);
 }
 
+function parseReceivedAmount(value: unknown) {
+  const raw = typeof value === "number" ? value : Number(String(value).trim().replace(",", "."));
+  if (!Number.isFinite(raw) || raw <= 0 || raw > 50_000) throw new Error("INVALID_AMOUNT");
+  return Math.round(raw * 100) / 100;
+}
+
 export async function adminUpdateSpot(input: {
   positionId: number;
   status?: SpotStatus;
@@ -402,6 +412,7 @@ export async function adminUpdateSpot(input: {
   logo?: string;
   release?: boolean;
   thanksEmailSentAt?: string;
+  receivedAmount?: number | string;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -428,20 +439,39 @@ export async function adminUpdateSpot(input: {
           : emailChanged
             ? ""
             : (current.thanksEmailSentAt ?? "");
+      const confirmingReceived = input.receivedAmount !== undefined;
+      const nextReceivedAmount =
+        nextStatus !== "sold"
+          ? 0
+          : confirmingReceived
+            ? parseReceivedAmount(input.receivedAmount)
+            : (current.receivedAmount || 0);
+      const nextReceivedAt =
+        nextStatus !== "sold"
+          ? ""
+          : confirmingReceived
+            ? new Date().toISOString()
+            : (current.receivedConfirmedAt || "");
       if (nextStatus === "sold" && current.status !== "sold") {
         store.payments.push({
           id: token(),
           positionId: catalog.id,
           brandName: nextSponsor || "admin",
           email: nextEmail,
-          amount: catalog.price,
+          amount: confirmingReceived ? nextReceivedAmount : catalog.price,
           network: current.network || "sinpe",
           txHash: current.txHash || "admin-accept",
           verifiedAt: new Date().toISOString(),
           mode: "manual",
         });
       } else {
-        syncLatestPayment(store, catalog.id, nextSponsor, nextEmail);
+        syncLatestPayment(
+          store,
+          catalog.id,
+          nextSponsor,
+          nextEmail,
+          confirmingReceived ? nextReceivedAmount : undefined,
+        );
       }
       store.positions[String(catalog.id)] = {
         ...current,
@@ -451,6 +481,8 @@ export async function adminUpdateSpot(input: {
         phone: nextPhone,
         logo: nextAdminLogo(input.logo, current.logo),
         thanksEmailSentAt: nextThanksSent,
+        receivedAmount: nextReceivedAmount,
+        receivedConfirmedAt: nextReceivedAt,
         reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
         reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:
@@ -485,6 +517,7 @@ function syncLatestPayment(
   positionId: number,
   brandName: string,
   email: string,
+  receivedAmount?: number,
 ) {
   for (let index = store.payments.length - 1; index >= 0; index -= 1) {
     if (store.payments[index].positionId !== positionId) continue;
@@ -492,6 +525,7 @@ function syncLatestPayment(
       ...store.payments[index],
       brandName: brandName || store.payments[index].brandName,
       email,
+      ...(receivedAmount != null ? { amount: receivedAmount } : {}),
     };
     return;
   }

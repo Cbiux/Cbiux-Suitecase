@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       logo?: string;
       release?: boolean;
       thanksEmailSentAt?: string;
+      receivedAmount?: number | string;
     };
     const positionId = Number(body.positionId);
     if (!positionId) {
@@ -39,6 +40,7 @@ export async function POST(request: Request) {
       logo: body.logo,
       release: body.release,
       thanksEmailSentAt: body.thanksEmailSentAt,
+      receivedAmount: body.receivedAmount,
     });
     return Response.json({ spot });
   } catch (error) {

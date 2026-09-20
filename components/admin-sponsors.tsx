@@ -25,6 +25,15 @@ export function AdminSponsors({
     () => positions.filter((spot) => spot.status !== "available" && !spot.email).length,
     [positions],
   );
+  const sold = useMemo(
+    () => positions.filter((spot) => spot.status === "sold"),
+    [positions],
+  );
+  const receivedTotal = sold.reduce(
+    (sum, spot) => sum + (spot.receivedConfirmedAt ? spot.receivedAmount : 0),
+    0,
+  );
+  const missingReceived = sold.filter((spot) => !spot.receivedConfirmedAt).length;
 
   return (
     <section>
@@ -33,10 +42,19 @@ export function AdminSponsors({
         Editá marca, correo y teléfono de cada posición. Liberar borra esos datos y deja el spot libre.
         {missingEmail ? ` ${missingEmail} confirmados o reservados no tienen correo: no se les puede mandar el pack.` : ""}
       </p>
+      <p className="mt-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+        <span className="font-medium">Cuentas:</span> ${formatUsd(receivedTotal)} confirmados como recibidos
+        {missingReceived
+          ? ` · ${missingReceived} vendidos sin anotar cuánto te llegó`
+          : sold.length
+            ? " · todos los vendidos tienen monto"
+            : ""}
+        .
+      </p>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {positions.map((spot) => (
           <SponsorCard
-            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.logo ? "logo" : "empty"}`}
+            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.logo ? "logo" : "empty"}`}
             spot={spot}
             onUpdate={onUpdate}
             onSend={onSend}
@@ -63,9 +81,13 @@ function SponsorCard({
   const [email, setEmail] = useState(spot.email);
   const [phone, setPhone] = useState(spot.phone);
   const [status, setStatus] = useState<SpotStatus>(spot.status);
+  const [received, setReceived] = useState(
+    spot.receivedConfirmedAt && spot.receivedAmount ? String(spot.receivedAmount) : "",
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const missingMail = status !== "available" && !email.trim();
+  const missingReceived = status === "sold" && !spot.receivedConfirmedAt;
   const wa = phone.trim() ? whatsappHref(phone) : "";
 
   async function saveAndSend() {
@@ -101,6 +123,18 @@ function SponsorCard({
     }
   }
 
+  async function confirmReceived() {
+    setError("");
+    setBusy(true);
+    try {
+      await onUpdate(spot.id, { receivedAmount: received });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo confirmar el monto.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function release() {
     if (
       !window.confirm(
@@ -123,7 +157,9 @@ function SponsorCard({
   return (
     <article
       className={`rounded-2xl border bg-card p-4 ${
-        missingMail ? "border-[#e6b800] dark:border-[#ffd54a]" : "border-border"
+        missingMail || missingReceived
+          ? "border-[#e6b800] dark:border-[#ffd54a]"
+          : "border-border"
       }`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -204,6 +240,36 @@ function SponsorCard({
         </div>
       </div>
 
+      {status === "sold" ? (
+        <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
+          <Label htmlFor={`received-${spot.id}`}>USD que te llegaron</Label>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            <Input
+              id={`received-${spot.id}`}
+              inputMode="decimal"
+              placeholder={`precio del spot: ${spot.price}`}
+              value={received}
+              onChange={(event) => setReceived(event.target.value)}
+              className="max-w-[10rem]"
+            />
+            <button
+              type="button"
+              className={`${adminActionBtn} bg-primary text-primary-foreground border-transparent`}
+              disabled={busy}
+              onClick={() => void confirmReceived()}
+            >
+              Confirmar recibido
+            </button>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Para tus cuentas. No cambia el precio público del spot.
+            {spot.receivedConfirmedAt
+              ? ` Última confirmación: ${formatUsd(spot.receivedAmount)} el ${formatWhen(spot.receivedConfirmedAt)}.`
+              : " Este confirmado todavía no tiene monto anotado."}
+          </p>
+        </div>
+      ) : null}
+
       {spot.thanksEmailSentAt ? (
         <p className="mt-3 font-mono text-[10px] text-muted-foreground">
           Correo de gracias enviado {formatWhen(spot.thanksEmailSentAt)}
@@ -212,6 +278,11 @@ function SponsorCard({
       {missingMail ? (
         <p className="mt-2 text-xs text-[#6b4f00] dark:text-[#ffd54a]">
           Sin correo no se puede mandar el pack de agradecimiento.
+        </p>
+      ) : null}
+      {missingReceived ? (
+        <p className="mt-2 text-xs text-[#6b4f00] dark:text-[#ffd54a]">
+          Confirmado como vendido, pero todavía no anotaste cuánto te llegó.
         </p>
       ) : null}
 
@@ -245,4 +316,11 @@ function SponsorCard({
       {error ? <p className="mt-2 text-xs text-destructive">{mailErrorLabel(error)}</p> : null}
     </article>
   );
+}
+
+function formatUsd(value: number) {
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
 }

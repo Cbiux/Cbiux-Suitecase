@@ -54,5 +54,6 @@ export function mailErrorLabel(code: string) {
   if (code === "UNAUTHORIZED") return "La sesión de admin expiró. Volvé a entrar.";
   if (code === "TOO_LONG") return "Algún campo es demasiado largo.";
   if (code === "UPDATE_FAILED") return "No se pudo guardar.";
+  if (code === "INVALID_AMOUNT") return "Anotá un monto recibido mayor a 0.";
   return code;
 }
