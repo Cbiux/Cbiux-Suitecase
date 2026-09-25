@@ -7,6 +7,7 @@ import { parseArtworkDataUrl } from "./artwork";
 import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
 import { isValidEmail } from "./email";
 import { loadStoreRaw, saveStoreRaw } from "./persist";
+import { canGlueCatalog } from "./spot-groups";
 import {
   parseReceivedAmount,
   parseReceivedCurrency,
@@ -45,6 +46,7 @@ const emptyState = (): PositionState => ({
   receivedMethod: "",
   receivedCurrency: "",
   receivedInKindItems: "",
+  mergeGroup: 0,
 });
 
 function seedStore(): StoreShape {
@@ -116,11 +118,12 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
 
 function expireReservations(store: StoreShape) {
   let changed = false;
-  for (const state of Object.values(store.positions)) {
+  for (const [key, state] of Object.entries(store.positions)) {
     if (state.status !== "reserved") continue;
     // Solo hay reserva real cuando ya mandaron comprobante. El resto se libera.
     if (state.comprobante) continue;
-    Object.assign(state, emptyState());
+    detachFromMerge(store, Number(key));
+    store.positions[key] = emptyState();
     changed = true;
   }
   return changed;
@@ -151,6 +154,7 @@ export function hydratePositions(
       receivedMethod: options.includePrivate ? state.receivedMethod || "" : "",
       receivedCurrency: options.includePrivate ? state.receivedCurrency || "" : "",
       receivedInKindItems: options.includePrivate ? state.receivedInKindItems || "" : "",
+      mergeGroup: state.mergeGroup || 0,
       name: copy.name,
       description: copy.description,
       benefits: [...copy.benefits],
@@ -409,6 +413,68 @@ function nextAdminLogo(input: string | undefined, current: string) {
   return parseArtworkDataUrl(trimmed);
 }
 
+function mergeIdsInStore(store: StoreShape, positionId: number) {
+  const state = store.positions[String(positionId)] ?? emptyState();
+  const host = state.mergeGroup || 0;
+  if (!host) return [positionId];
+  return POSITION_CATALOG.filter(
+    (item) => (store.positions[String(item.id)]?.mergeGroup || 0) === host,
+  ).map((item) => item.id);
+}
+
+function writeMergeGroup(store: StoreShape, ids: number[]) {
+  const unique = [...new Set(ids)].sort((a, b) => a - b);
+  const host = unique[0];
+  const logo =
+    unique
+      .map((id) => store.positions[String(id)] ?? emptyState())
+      .find((state) => state.logo)?.logo || "";
+  for (const id of unique) {
+    const current = store.positions[String(id)] ?? emptyState();
+    store.positions[String(id)] = {
+      ...current,
+      mergeGroup: unique.length > 1 ? host : 0,
+      ...(logo ? { logo } : {}),
+    };
+  }
+}
+
+function glueSpots(store: StoreShape, aId: number, bId: number) {
+  if (aId === bId) throw new Error("NEED_TWO");
+  const union = [...new Set([...mergeIdsInStore(store, aId), ...mergeIdsInStore(store, bId)])];
+  const check = canGlueCatalog(union);
+  if (!check.ok) throw new Error(check.error);
+  for (const id of union) {
+    const state = store.positions[String(id)] ?? emptyState();
+    if (state.status === "available") throw new Error("MERGE_AVAILABLE");
+  }
+  writeMergeGroup(store, union);
+}
+
+function unmergeGroup(store: StoreShape, positionId: number) {
+  const ids = mergeIdsInStore(store, positionId);
+  for (const id of ids) {
+    const current = store.positions[String(id)] ?? emptyState();
+    store.positions[String(id)] = { ...current, mergeGroup: 0 };
+  }
+}
+
+function detachFromMerge(store: StoreShape, positionId: number) {
+  const ids = mergeIdsInStore(store, positionId).filter((id) => id !== positionId);
+  const current = store.positions[String(positionId)] ?? emptyState();
+  const logo = current.logo;
+  store.positions[String(positionId)] = { ...current, mergeGroup: 0 };
+  if (ids.length === 0) return;
+  writeMergeGroup(store, ids);
+  if (logo) {
+    const host = Math.min(...ids);
+    const hostState = store.positions[String(host)] ?? emptyState();
+    if (!hostState.logo) {
+      store.positions[String(host)] = { ...hostState, logo };
+    }
+  }
+}
+
 export async function adminUpdateSpot(input: {
   positionId: number;
   status?: SpotStatus;
@@ -422,6 +488,8 @@ export async function adminUpdateSpot(input: {
   receivedMethod?: string;
   receivedCurrency?: string;
   receivedInKindItems?: string;
+  mergeWith?: number;
+  unmerge?: boolean;
 }) {
   return withLock(async () => {
     const store = await readStore();
@@ -430,7 +498,14 @@ export async function adminUpdateSpot(input: {
     const current = store.positions[String(catalog.id)] ?? emptyState();
 
     if (input.release) {
+      detachFromMerge(store, catalog.id);
       store.positions[String(catalog.id)] = emptyState();
+    } else if (input.unmerge) {
+      unmergeGroup(store, catalog.id);
+    } else if (input.mergeWith) {
+      const otherId = Number(input.mergeWith);
+      if (!Number.isFinite(otherId) || otherId === catalog.id) throw new Error("NEED_TWO");
+      glueSpots(store, catalog.id, otherId);
     } else {
       const nextSponsor =
         input.sponsor !== undefined ? input.sponsor.trim() : current.sponsor;
@@ -500,19 +575,35 @@ export async function adminUpdateSpot(input: {
           confirmingReceived ? nextReceivedAmount : undefined,
         );
       }
+      if (nextStatus === "available" && current.mergeGroup) {
+        detachFromMerge(store, catalog.id);
+      }
+      const nextLogo = nextAdminLogo(input.logo, current.logo);
+      const groupIds =
+        nextStatus === "available" || !current.mergeGroup
+          ? [catalog.id]
+          : mergeIdsInStore(store, catalog.id);
+      if (input.logo !== undefined && groupIds.length > 1) {
+        for (const id of groupIds) {
+          if (id === catalog.id) continue;
+          const other = store.positions[String(id)] ?? emptyState();
+          store.positions[String(id)] = { ...other, logo: nextLogo };
+        }
+      }
       store.positions[String(catalog.id)] = {
         ...current,
         status: nextStatus,
         sponsor: nextSponsor,
         email: nextEmail,
         phone: nextPhone,
-        logo: nextAdminLogo(input.logo, current.logo),
+        logo: nextLogo,
         thanksEmailSentAt: nextThanksSent,
         receivedAmount: nextReceivedAmount,
         receivedConfirmedAt: nextReceivedAt,
         receivedMethod: nextReceivedMethod,
         receivedCurrency: nextReceivedCurrency,
         receivedInKindItems: nextReceivedInKindItems,
+        mergeGroup: nextStatus === "available" ? 0 : current.mergeGroup || 0,
         reservedAt: nextStatus === "available" ? "" : current.reservedAt || new Date().toISOString(),
         reservedUntil: nextStatus === "available" || nextStatus === "sold" ? "" : current.reservedUntil,
         recoveryToken:

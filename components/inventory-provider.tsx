@@ -11,6 +11,7 @@ import {
 import { bakeLogoPlateCached } from "@/lib/logo-fit";
 import { localizeInventory } from "@/lib/localize";
 import { artworkSpec, getCatalogById } from "@/lib/positions";
+import { visiblePlates } from "@/lib/spot-groups";
 import type { ApproachPhase, Face, InventoryResponse, LivePosition } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 
@@ -52,10 +53,10 @@ export function InventoryProvider({
   const [approachPhase, setApproachPhase] = useState<ApproachPhase>("idle");
 
   useEffect(() => {
-    for (const position of raw.positions) {
-      if (!position.logo) continue;
-      const spec = artworkSpec(position.size);
-      void bakeLogoPlateCached(position.logo, spec.cmW, spec.cmH);
+    for (const plate of visiblePlates(raw.positions)) {
+      if (!plate.logo) continue;
+      const spec = artworkSpec(plate.size);
+      void bakeLogoPlateCached(plate.logo, spec.cmW, spec.cmH);
     }
   }, [raw]);
 

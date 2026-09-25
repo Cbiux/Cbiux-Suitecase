@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { compressReceipt } from "@/lib/compress-receipt";
 import { ARTWORK_ACCEPT, SITE } from "@/lib/config";
 import { artworkSpec, padSpot } from "@/lib/positions";
+import { plateContaining } from "@/lib/spot-groups";
 import { bakeLogoPlateCached } from "@/lib/logo-fit";
 import { formatMoney } from "@/lib/currency";
 import { phoneLooksValid } from "@/lib/phone";
@@ -68,6 +69,15 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const [verified, setVerified] = useState(false);
 
   const wallets = data?.wallets;
+  const plate = useMemo(
+    () => (data ? plateContaining(data.positions, selected.id) : undefined),
+    [data, selected.id],
+  );
+  const spec = artworkSpec(plate?.size ?? selected.size);
+  const positionLabel =
+    plate && plate.memberIds.length > 1
+      ? plate.memberIds.map(padSpot).join(" + ")
+      : padSpot(selected.id);
   const address =
     network === "sinpe"
       ? wallets?.sinpe
@@ -78,13 +88,12 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
           : wallets?.evm;
 
   const shareText = useMemo(() => {
-    const n = padSpot(selected.id);
+    const n = positionLabel;
     return locale === "es"
       ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 34 spots · desde ${formatMoney(45, currency)} · USDC`
       : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 34 spots · from ${formatMoney(45, currency)} · USDC`;
-  }, [selected, brandName, locale, currency]);
+  }, [positionLabel, brandName, locale, currency]);
 
-  const spec = artworkSpec(selected.size);
   const logoHint = fillCopy(dict.claim.logoSizeHint, {
     size: spec.sizeLabel,
     pixels: spec.pixelLabel,
@@ -312,7 +321,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
     const reader = new FileReader();
     reader.onload = () => {
       const raw = String(reader.result);
-      const spec = artworkSpec(selected.size);
+      const spec = artworkSpec(plate?.size ?? selected.size);
       void bakeLogoPlateCached(raw, spec.cmW, spec.cmH)
         .then((baked) => {
           setLogo(baked.src);
@@ -337,7 +346,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
             {selected.tier === "presenting" ? ` · ${dict.claim.presenting}` : ""}
           </p>
           <SheetTitle className="text-3xl font-semibold tracking-tight">
-            {dict.claim.position} {padSpot(selected.id)}
+            {dict.claim.position} {positionLabel}
           </SheetTitle>
         </SheetHeader>
         <div className="px-6 pb-10">
@@ -350,7 +359,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{dict.currency.rateNote}</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          {dict.claim.approx} {selected.size} · {spec.pixelLabel}
+          {dict.claim.approx} {plate?.size ?? selected.size} · {spec.pixelLabel}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">{selected.logoGuidance}</p>
 

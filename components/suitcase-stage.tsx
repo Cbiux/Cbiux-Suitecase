@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { artworkSpec, padSpot } from "@/lib/positions";
+import { visiblePlates } from "@/lib/spot-groups";
+import type { DisplayPlate } from "@/lib/spot-groups";
 import { plateBorderColor } from "@/lib/logo-plate";
-import type { Face, LivePosition } from "@/lib/types";
+import type { Face } from "@/lib/types";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { SpotLogo } from "./spot-logo";
@@ -43,6 +45,7 @@ export function SuitcaseStage({
   const { dict } = useLanguage();
   const { data, setSelectedId, selectedId, setActiveFace } = useInventory();
   const spots = data?.positions.filter((p) => p.face === face) ?? [];
+  const plates = visiblePlates(spots);
   const side = face === "left" || face === "right";
   const widthLabel = side ? "20 CM" : "40 CM";
   const photo = PHOTOS[face];
@@ -57,12 +60,12 @@ export function SuitcaseStage({
           className="pointer-events-none absolute inset-0 h-full w-full object-contain"
           style={{ transform: photo.mirror ? "scaleX(-1)" : undefined }}
         />
-        {spots.map((spot) => (
+        {plates.map((spot) => (
           <SpotButton
-            key={spot.id}
+            key={spot.memberIds.join("-")}
             spot={spot}
             compact={compact || side}
-            active={selectedId === spot.id}
+            active={selectedId != null && spot.memberIds.includes(selectedId)}
             onSelect={() => {
               setActiveFace(face);
               setSelectedId(spot.id);
@@ -99,7 +102,7 @@ function SpotButton({
   compact,
   onSelect,
 }: {
-  spot: LivePosition;
+  spot: DisplayPlate;
   active: boolean;
   compact?: boolean;
   onSelect: () => void;
@@ -115,7 +118,7 @@ function SpotButton({
     <button
       type="button"
       onClick={onSelect}
-      aria-label={`Position ${padSpot(spot.id)}, ${spot.name}, $${spot.price}, ${spot.status}`}
+      aria-label={`Position ${spot.memberIds.length > 1 ? spot.memberIds.map(padSpot).join(" + ") : padSpot(spot.id)}, ${spot.name}, $${spot.price}, ${spot.status}`}
       className={`absolute z-10 flex flex-col items-center justify-center overflow-hidden border-2 backdrop-blur-[2px] transition ${
         spot.logo
           ? ""
@@ -147,7 +150,7 @@ function SpotButton({
               compact || side ? "text-[10px]" : "text-[13px]"
             }`}
           >
-            {padSpot(spot.id)}
+            {spot.memberIds.length > 1 ? spot.memberIds.map(padSpot).join("+") : padSpot(spot.id)}
           </strong>
           <span
             className={`mt-0.5 font-mono font-semibold tracking-wide ${

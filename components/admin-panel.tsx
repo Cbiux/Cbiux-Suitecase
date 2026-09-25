@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AdminArtwork } from "./admin-artwork";
+import { AdminMerge } from "./admin-merge";
 import { AdminSponsors } from "./admin-sponsors";
 import { AdminThanksCard } from "./admin-thanks";
 import { AdminThanksMail } from "./admin-thanks-mail";
@@ -18,6 +19,8 @@ import {
   receivedMethodLabel,
 } from "@/lib/received";
 import { padSpot } from "@/lib/positions";
+import { visiblePlates } from "@/lib/spot-groups";
+import type { DisplayPlate } from "@/lib/spot-groups";
 import { whatsappHref } from "@/lib/phone";
 import type { LivePosition, OfferRecord, OfferStatus, PaymentRecord } from "@/lib/types";
 
@@ -27,7 +30,7 @@ type AdminData = {
   offers: OfferRecord[];
 };
 
-type AdminTab = "inbox" | "sponsors" | "mail" | "art";
+type AdminTab = "inbox" | "sponsors" | "merge" | "mail" | "art";
 
 export function AdminLogin() {
   const [password, setPassword] = useState("");
@@ -97,7 +100,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
     [data.offers],
   );
   const artworkSpots = useMemo(
-    () => data.positions.filter((spot) => Boolean(spot.logo)),
+    () => visiblePlates(data.positions).filter((spot) => Boolean(spot.logo) || Boolean(spot.comprobante)),
     [data.positions],
   );
   const sold = useMemo(
@@ -186,6 +189,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
   const tabs: { id: AdminTab; label: string }[] = [
     { id: "inbox", label: "Bandeja" },
     { id: "sponsors", label: "Patrocinadores" },
+    { id: "merge", label: "Juntar" },
     { id: "mail", label: "Correo" },
     { id: "art", label: "Arte" },
   ];
@@ -284,6 +288,12 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
             onSend={(spot) => sendOne(spot)}
             sendingId={sendingId}
           />
+        </div>
+      ) : null}
+
+      {tab === "merge" ? (
+        <div className="mt-10">
+          <AdminMerge positions={data.positions} onUpdate={updateSpot} />
         </div>
       ) : null}
 
@@ -454,9 +464,10 @@ function ArtSections({
   artworkSpots,
   updateSpot,
 }: {
-  artworkSpots: LivePosition[];
+  artworkSpots: DisplayPlate[];
   updateSpot: (id: number, patch: Record<string, unknown>) => Promise<void>;
 }) {
+  const logoSpots = artworkSpots.filter((spot) => Boolean(spot.logo));
   return (
     <>
       <section className="mt-10">
@@ -472,8 +483,12 @@ function ArtSections({
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {artworkSpots.map((spot) => (
-              <article key={`art-${spot.id}`} className="rounded-2xl border border-border bg-card p-4">
-                <p className="mono-label text-primary">posición {padSpot(spot.id)}</p>
+              <article key={`art-${spot.memberIds.join("-")}`} className="rounded-2xl border border-border bg-card p-4">
+                <p className="mono-label text-primary">
+                  {spot.memberIds.length > 1
+                    ? `posiciones ${spot.memberIds.map(padSpot).join(" + ")}`
+                    : `posición ${padSpot(spot.id)}`}
+                </p>
                 <p className="mt-1 truncate text-lg font-medium">{spot.sponsor || spot.name}</p>
                 {spot.phone ? (
                   <a
@@ -515,15 +530,15 @@ function ArtSections({
         <p className="mt-1 text-sm text-muted-foreground">
           Dos piezas 1080×1350: el agradecimiento con el logo grande, y la vista de la maleta con el espacio que compraron.
         </p>
-        {artworkSpots.length === 0 ? (
+        {logoSpots.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
             Cuando haya un logo, acá aparecen los posts listos para descargar.
           </p>
         ) : (
           <div className="mt-4 grid gap-4">
-            {artworkSpots.map((spot) => (
+            {logoSpots.map((spot) => (
               <AdminThanksCard
-                key={`thanks-${spot.id}`}
+                key={`thanks-${spot.memberIds.join("-")}`}
                 positionId={spot.id}
                 sponsor={spot.sponsor}
                 fallbackName={spot.name}

@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminArtwork } from "@/components/admin-artwork";
 import { adminActionBtn, formatWhen, mailErrorLabel, ReceivedAccountsCard, StatusPill } from "@/components/admin-ui";
-import { padSpot } from "@/lib/positions";
+import { getCatalogById, padSpot } from "@/lib/positions";
+import { combinedSize, groupedMemberIds } from "@/lib/spot-groups";
 import { whatsappHref } from "@/lib/phone";
 import { isValidEmail } from "@/lib/email";
 import {
@@ -32,11 +33,35 @@ export function AdminSponsors({
     () => positions.filter((spot) => spot.status !== "available" && !spot.email).length,
     [positions],
   );
+  const [query, setQuery] = useState("");
   const sold = useMemo(
     () => positions.filter((spot) => spot.status === "sold"),
     [positions],
   );
   const accounts = useMemo(() => formatReceivedBookkeeping(positions), [positions]);
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return positions;
+    const compact = needle.replace(/\s+/g, "");
+    return positions.filter((spot) => {
+      const members = groupedMemberIds(positions, spot.id);
+      const hay = [
+        padSpot(spot.id),
+        String(spot.id),
+        spot.sponsor,
+        spot.email,
+        spot.phone,
+        spot.name,
+        ...members.map((id) => padSpot(id)),
+        ...members.map(String),
+        members.map(padSpot).join("+"),
+        spot.mergeGroup ? `pegado ${spot.mergeGroup}` : "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(needle) || spot.phone.replace(/\s+/g, "").includes(compact);
+    });
+  }, [positions, query]);
 
   return (
     <section>
@@ -55,16 +80,33 @@ export function AdminSponsors({
               : "Todavía no hay vendidos anotados."}
         </p>
       </div>
+      <div className="mt-4">
+        <Label htmlFor="sponsor-search">Buscar patrocinador</Label>
+        <Input
+          id="sponsor-search"
+          className="mt-1.5 max-w-md"
+          placeholder="nombre, correo, teléfono o número de espacio"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+      </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
-        {positions.map((spot) => (
-          <SponsorCard
-            key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.receivedMethod}-${spot.receivedCurrency}-${spot.receivedInKindItems}-${spot.logo ? "logo" : "empty"}`}
-            spot={spot}
-            onUpdate={onUpdate}
-            onSend={onSend}
-            sending={sendingId === spot.id}
-          />
-        ))}
+        {visible.length === 0 ? (
+          <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground md:col-span-2">
+            Nada coincide con “{query.trim()}”.
+          </p>
+        ) : (
+          visible.map((spot) => (
+            <SponsorCard
+              key={`${spot.id}-${spot.status}-${spot.sponsor}-${spot.email}-${spot.phone}-${spot.thanksEmailSentAt}-${spot.receivedConfirmedAt}-${spot.receivedAmount}-${spot.receivedMethod}-${spot.receivedCurrency}-${spot.receivedInKindItems}-${spot.mergeGroup}-${spot.logo ? "logo" : "empty"}`}
+              spot={spot}
+              members={groupedMemberIds(positions, spot.id)}
+              onUpdate={onUpdate}
+              onSend={onSend}
+              sending={sendingId === spot.id}
+            />
+          ))
+        )}
       </div>
     </section>
   );
@@ -72,11 +114,13 @@ export function AdminSponsors({
 
 function SponsorCard({
   spot,
+  members,
   onUpdate,
   onSend,
   sending,
 }: {
   spot: LivePosition;
+  members: number[];
   onUpdate: (id: number, patch: Record<string, unknown>) => Promise<void>;
   onSend: (spot: LivePosition) => Promise<void>;
   sending: boolean;
@@ -97,6 +141,10 @@ function SponsorCard({
   const [inKindItems, setInKindItems] = useState(spot.receivedInKindItems || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const panelBoxes = members
+    .map((id) => getCatalogById(id))
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const panelSize = panelBoxes.length > 1 ? combinedSize(panelBoxes) : spot.size;
   const missingMail = status !== "available" && !email.trim();
   const missingReceived = status === "sold" && !spot.receivedConfirmedAt;
   const wa = phone.trim() ? whatsappHref(phone) : "";
@@ -190,9 +238,12 @@ function SponsorCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mono-label text-primary">posición {padSpot(spot.id)}</p>
+          <p className="mono-label text-primary">
+            {members.length > 1 ? `posiciones ${members.map(padSpot).join(" + ")}` : `posición ${padSpot(spot.id)}`}
+          </p>
           <p className="mt-1 text-sm text-muted-foreground">
             {spot.name} · ${spot.price}
+            {members.length > 1 ? ` · pegado con ${members.map(padSpot).join(" + ")}` : ""}
           </p>
         </div>
         <StatusPill status={spot.status} />
@@ -203,7 +254,7 @@ function SponsorCard({
           positionId={spot.id}
           sponsor={sponsor || spot.sponsor}
           src={spot.logo}
-          panelSize={spot.size}
+          panelSize={panelSize}
           size="sm"
           onReplace={(logo) => onUpdate(spot.id, { logo })}
         />

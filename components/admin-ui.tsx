@@ -90,5 +90,10 @@ export function mailErrorLabel(code: string) {
   if (code === "INVALID_IN_KIND") {
     return "Anotá el artículo o los artículos que te dieron en especie.";
   }
+  if (code === "NOT_ADJACENT") return "Esos espacios no están uno al lado del otro.";
+  if (code === "NOT_SAME_FACE") return "Solo se pueden pegar espacios de la misma cara.";
+  if (code === "NOT_RECTANGLE") return "Al pegarlos tiene que quedar un rectángulo, sin huecos.";
+  if (code === "MERGE_AVAILABLE") return "Pegá espacios que ya estén reservados o vendidos.";
+  if (code === "NEED_TWO") return "Elegí dos espacios para pegarlos.";
   return code;
 }

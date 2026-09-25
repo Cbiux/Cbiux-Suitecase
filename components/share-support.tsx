@@ -1,6 +1,7 @@
 "use client";
 
 import { padSpot } from "@/lib/positions";
+import { visiblePlates } from "@/lib/spot-groups";
 import { thanksBrand } from "@/lib/poster-kit";
 import { AnimatedLetters } from "./animated-letters";
 import { useInventory } from "./inventory-provider";
@@ -10,7 +11,7 @@ import { PosterCard } from "./poster-card";
 export function ShareSupport() {
   const { dict, locale } = useLanguage();
   const { data } = useInventory();
-  const spots = data?.positions.filter((spot) => Boolean(spot.logo)) ?? [];
+  const spots = visiblePlates(data?.positions ?? []).filter((spot) => Boolean(spot.logo));
   if (spots.length === 0) return null;
 
   const labels = {
@@ -35,7 +36,11 @@ export function ShareSupport() {
           const name = spot.sponsor || spot.name;
           return (
             <article key={`share-${spot.id}`} className="rounded-3xl border border-border bg-card p-5 md:p-6">
-              <p className="mono-label text-primary">posición {padSpot(spot.id)}</p>
+              <p className="mono-label text-primary">
+                {spot.memberIds.length > 1
+                  ? `posiciones ${spot.memberIds.map(padSpot).join(" + ")}`
+                  : `posición ${padSpot(spot.id)}`}
+              </p>
               <p className="mt-1 truncate text-2xl font-medium tracking-tight">{brand}</p>
               <div className="mt-5 grid gap-6 md:grid-cols-2">
                 <PosterCard

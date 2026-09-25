@@ -29,6 +29,8 @@ export async function POST(request: Request) {
       receivedMethod?: string;
       receivedCurrency?: string;
       receivedInKindItems?: string;
+      mergeWith?: number;
+      unmerge?: boolean;
     };
     const positionId = Number(body.positionId);
     if (!positionId) {
@@ -47,6 +49,8 @@ export async function POST(request: Request) {
       receivedMethod: body.receivedMethod,
       receivedCurrency: body.receivedCurrency,
       receivedInKindItems: body.receivedInKindItems,
+      mergeWith: body.mergeWith,
+      unmerge: body.unmerge,
     });
     return Response.json({ spot });
   } catch (error) {

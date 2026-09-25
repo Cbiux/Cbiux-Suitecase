@@ -281,7 +281,7 @@ export function getCatalogById(id: number) {
 }
 
 export function artworkSpec(size: string) {
-  const match = /(\d+)\s*[×x]\s*(\d+)/i.exec(size);
+  const match = /(\d+(?:\.\d+)?)\s*[×x]\s*(\d+(?:\.\d+)?)/i.exec(size);
   const cmW = match ? Number(match[1]) : 17;
   const cmH = match ? Number(match[2]) : 12;
   const pxW = Math.round((cmW / 2.54) * 300 / 50) * 50;

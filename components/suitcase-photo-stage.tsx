@@ -3,8 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { bakeLogoPlateCached, peekBakedLogo } from "@/lib/logo-fit";
 import { FACE_ORDER, artworkSpec, padSpot } from "@/lib/positions";
+import { visiblePlates } from "@/lib/spot-groups";
+import type { DisplayPlate } from "@/lib/spot-groups";
 import { plateBorderColor } from "@/lib/logo-plate";
-import type { Face, LivePosition } from "@/lib/types";
+import type { Face } from "@/lib/types";
 import { useInventory } from "./inventory-provider";
 import { useLanguage } from "./language-provider";
 import { useCurrency } from "./currency-provider";
@@ -219,6 +221,11 @@ function SuitcaseView({
   const { dict } = useLanguage();
   const { data, selected, selectedId, setSelectedId, setActiveFace, approachPhase } = useInventory();
   const spots = data?.positions.filter((spot) => spot.face === face) ?? [];
+  const plates = visiblePlates(spots);
+  const selectedPlate =
+    selected && selected.face === face
+      ? plates.find((plate) => plate.memberIds.includes(selected.id))
+      : undefined;
   const photo = PHOTOS[face];
   const bagRef = useRef<HTMLImageElement>(null);
   const [bagReady, setBagReady] = useState(false);
@@ -228,9 +235,9 @@ function SuitcaseView({
     focus &&
     selected?.face === face &&
     (approachPhase === "approaching" || approachPhase === "focused");
-  const rawCx = selected && selected.face === face ? selected.x + selected.width / 2 : 50;
-  const cx = selected && selected.face === face && photo.mirror ? 100 - rawCx : rawCx;
-  const cy = selected && selected.face === face ? selected.y + selected.height / 2 : 50;
+  const rawCx = selectedPlate ? selectedPlate.x + selectedPlate.width / 2 : 50;
+  const cx = selectedPlate && photo.mirror ? 100 - rawCx : rawCx;
+  const cy = selectedPlate ? selectedPlate.y + selectedPlate.height / 2 : 50;
   const side = face === "left" || face === "right";
 
   useEffect(() => {
@@ -260,13 +267,13 @@ function SuitcaseView({
     };
   }, [photo.src]);
 
-  const logoKey = spots
+  const logoKey = plates
     .filter((spot) => spot.logo)
     .map((spot) => `${spot.id}:${spot.size}:${spot.logo.length}:${spot.logo.slice(-16)}`)
     .join("|");
 
   useEffect(() => {
-    const logoSpots = spots.filter((spot) => spot.logo);
+    const logoSpots = plates.filter((spot) => spot.logo);
     if (logoSpots.length === 0) {
       setLogosReady(true);
       return;
@@ -344,12 +351,12 @@ function SuitcaseView({
                   }}
                 />
                 {stageReady
-                  ? spots.map((spot, index) => (
+                  ? plates.map((spot, index) => (
                       <SpotOverlay
-                        key={spot.id}
+                        key={spot.memberIds.join("-")}
                         spot={spot}
                         mirror={photo.mirror}
-                        active={selectedId === spot.id}
+                        active={Boolean(selectedId && spot.memberIds.includes(selectedId))}
                         revealIndex={compact && chrome ? index : undefined}
                         onSelect={() => {
                           setActiveFace(face);
@@ -397,7 +404,7 @@ function SpotOverlay({
   revealIndex,
   onSelect,
 }: {
-  spot: LivePosition;
+  spot: DisplayPlate;
   mirror: boolean;
   active: boolean;
   revealIndex?: number;
@@ -452,7 +459,9 @@ function SpotOverlay({
             } ${sold ? "text-[#147a4b]" : held ? "text-[#6b4f00]" : "text-[#111]"}`}
             style={{ animationDelay: `${40 + (spot.id % 6) * 45}ms` }}
           >
-            {padSpot(spot.id)}
+            {spot.memberIds.length > 1
+              ? spot.memberIds.map(padSpot).join("+")
+              : padSpot(spot.id)}
           </strong>
           <span
             className={`spot-price font-mono font-semibold leading-none ${
