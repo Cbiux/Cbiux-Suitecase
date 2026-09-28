@@ -8,6 +8,7 @@ import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
 import { isValidEmail } from "./email";
 import { loadStoreRaw, saveStoreRaw } from "./persist";
 import { canGlueCatalog } from "./spot-groups";
+import { parseSiteContent, defaultSiteContent, type SiteContent } from "./site-content";
 import {
   parseReceivedAmount,
   parseReceivedCurrency,
@@ -77,6 +78,7 @@ function mergeStore(raw: StoreShape | null): StoreShape {
   }
   seeded.payments = raw.payments ?? [];
   seeded.offers = (raw.offers ?? []).map(hydrateOffer);
+  seeded.siteContent = raw.siteContent ? parseSiteContent(raw.siteContent) : undefined;
   seeded.updatedAt = raw.updatedAt ?? seeded.updatedAt;
   return seeded;
 }
@@ -389,6 +391,7 @@ export async function adminList() {
         positions: hydratePositions(store, "es", { includePrivate: true }),
         payments: store.payments,
         offers: store.offers ?? [],
+        siteContent: parseSiteContent(store.siteContent),
         updatedAt: store.updatedAt,
       };
     });
@@ -400,9 +403,35 @@ export async function adminList() {
       positions: hydratePositions(store, "es", { includePrivate: true }),
       payments: [],
       offers: [],
+      siteContent: defaultSiteContent(),
       updatedAt: store.updatedAt,
     };
   }
+}
+
+export async function getSiteContent(): Promise<SiteContent> {
+  try {
+    const store = await readStore();
+    return parseSiteContent(store.siteContent);
+  } catch (error) {
+    console.error("[store] site content fallback to defaults");
+    console.error(error);
+    return defaultSiteContent();
+  }
+}
+
+export async function adminUpdateSiteContent(input: unknown, options: { reset?: boolean } = {}) {
+  return withLock(async () => {
+    const store = await readStore();
+    if (options.reset) {
+      store.siteContent = undefined;
+      await persist(store);
+      return defaultSiteContent();
+    }
+    store.siteContent = parseSiteContent(input);
+    await persist(store);
+    return store.siteContent;
+  });
 }
 
 function nextAdminLogo(input: string | undefined, current: string) {

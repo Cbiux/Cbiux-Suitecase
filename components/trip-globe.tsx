@@ -14,16 +14,10 @@ import {
   SphereGeometry,
   TextureLoader,
 } from "three";
-import {
-  PLACES,
-  ROUTE_ARCS,
-  ROUTE_VISITS,
-  type PlaceId,
-  type RouteArc,
-} from "@/lib/trip-route";
+import type { RouteArc } from "@/lib/trip-route";
 
 type GlobeLabel = {
-  id: PlaceId;
+  id: string;
   lat: number;
   lng: number;
   text: string;
@@ -31,11 +25,15 @@ type GlobeLabel = {
 
 type TripGlobeProps = {
   labels: GlobeLabel[];
-  activeIndex: number | null;
+  arcs: RouteArc[];
+  focus: { lat: number; lng: number } | null;
+  home: { lat: number; lng: number }[];
+  activePlaceId: string | null;
+  activeArcIndex: number | null;
   reduceMotion: boolean;
   zoomInLabel: string;
   zoomOutLabel: string;
-  onSelectPlace: (id: PlaceId) => void;
+  onSelectPlace: (id: string) => void;
 };
 
 type ArcLayer = RouteArc & { kind: "glow" | "core" };
@@ -66,7 +64,11 @@ function findGlobeMaterial(globe: GlobeMethods): MeshPhongMaterial | null {
 
 export default function TripGlobe({
   labels,
-  activeIndex,
+  arcs: routeArcs,
+  focus,
+  home,
+  activePlaceId,
+  activeArcIndex,
   reduceMotion,
   zoomInLabel,
   zoomOutLabel,
@@ -79,27 +81,23 @@ export default function TripGlobe({
   const [ready, setReady] = useState(false);
   const [inView, setInView] = useState(true);
 
-  const activePlace = activeIndex == null ? null : ROUTE_VISITS[activeIndex];
-  const activeCoords = activePlace ? PLACES[activePlace] : null;
-
+  const activeCoords = focus;
   const pinLabels = labels;
 
   const rings = useMemo(() => {
     if (!activeCoords) {
-      return [
-        { lat: PLACES.sjo.lat, lng: PLACES.sjo.lng },
-        { lat: PLACES.bom.lat, lng: PLACES.bom.lng },
-      ];
+      return home.slice(0, 2);
     }
     return [{ lat: activeCoords.lat, lng: activeCoords.lng }];
-  }, [activeCoords]);
+  }, [activeCoords, home]);
 
   const arcs = useMemo<ArcLayer[]>(
-    () => ROUTE_ARCS.flatMap((arc) => [
-      { ...arc, kind: "glow" as const },
-      { ...arc, kind: "core" as const },
-    ]),
-    [],
+    () =>
+      routeArcs.flatMap((arc) => [
+        { ...arc, kind: "glow" as const },
+        { ...arc, kind: "core" as const },
+      ]),
+    [routeArcs],
   );
 
   const makePin = useCallback(
@@ -149,9 +147,9 @@ export default function TripGlobe({
 
   useEffect(() => {
     wrapRef.current?.querySelectorAll<HTMLElement>(".route-globe-pin").forEach((el) => {
-      el.classList.toggle("is-active", el.dataset.place === activePlace);
+      el.classList.toggle("is-active", el.dataset.place === activePlaceId);
     });
-  }, [activePlace, labels, ready, size.width]);
+  }, [activePlaceId, labels, ready, size.width]);
 
   useEffect(() => {
     const globe = globeRef.current;
@@ -166,7 +164,7 @@ export default function TripGlobe({
     controls.zoomSpeed = 0.7;
     controls.minDistance = radius * (1 + MIN_ALTITUDE);
     controls.maxDistance = radius * (1 + MAX_ALTITUDE);
-    controls.autoRotate = !reduceMotion && activeIndex == null;
+    controls.autoRotate = !reduceMotion && activePlaceId == null;
     controls.autoRotateSpeed = 0.32;
 
     const stopSpin = () => {
@@ -176,7 +174,7 @@ export default function TripGlobe({
     return () => {
       controls.removeEventListener("start", stopSpin);
     };
-  }, [ready, reduceMotion, activeIndex]);
+  }, [ready, reduceMotion, activePlaceId]);
 
   useEffect(() => {
     const el = wrapRef.current;
@@ -380,7 +378,8 @@ export default function TripGlobe({
           arcColor={(arc: object) => {
             const data = arc as ArcLayer;
             const hot =
-              activeIndex != null && (data.index === activeIndex || data.index === activeIndex - 1);
+              activeArcIndex != null &&
+              (data.index === activeArcIndex || data.index === activeArcIndex - 1);
             if (data.kind === "glow") {
               if (hot) return "rgba(255,255,255,0.28)";
               return data.outbound ? "rgba(109,124,255,0.28)" : "rgba(212,190,120,0.26)";

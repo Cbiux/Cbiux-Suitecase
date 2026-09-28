@@ -54,8 +54,8 @@ export function WhatYouGet() {
       </h2>
       <p className="mt-4 max-w-[620px] text-muted-foreground">{dict.included.intro}</p>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {dict.included.items.map((item) => (
-          <article key={item.n} className="rounded-2xl border border-border bg-card p-6">
+        {dict.included.items.map((item, index) => (
+          <article key={`${item.n}-${index}`} className="rounded-2xl border border-border bg-card p-6">
             <span className="mono-label text-primary">{item.n}</span>
             <h3 className="mt-3 text-xl font-medium tracking-tight">{item.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{item.body}</p>
@@ -84,17 +84,17 @@ export function HowItWorks() {
         <AnimatedLetters text={dict.how.title} />
       </h2>
       <div className="mt-8 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {dict.how.steps.map((step) => (
-          <article key={step.n} className="rounded-2xl border border-border bg-card p-6">
+        {dict.how.steps.map((step, index) => (
+          <article key={`${step.n}-${index}`} className="rounded-2xl border border-border bg-card p-6">
             <span className="mono-label text-primary">{step.n}</span>
             <h3 className="mt-3 text-xl font-medium tracking-tight">{step.title}</h3>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
           </article>
         ))}
       </div>
-      <div className="mt-10 grid gap-3 md:grid-cols-4">
-        {dict.timeline.items.map((item) => (
-          <article key={item.title} className="rounded-2xl border border-border bg-card p-6">
+      <div className="mt-10 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {dict.timeline.items.map((item, index) => (
+          <article key={`${item.title}-${index}`} className="rounded-2xl border border-border bg-card p-6">
             <time className="mono-label text-primary">{item.date}</time>
             <h3 className="mt-3 text-lg font-medium tracking-tight">{item.title}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{item.body}</p>
@@ -138,7 +138,7 @@ export function Funds() {
 }
 
 export function Addons() {
-  const { dict } = useLanguage();
+  const { dict, site } = useLanguage();
   return (
     <section id="addons" className="py-16 md:py-24">
       <div className="shell">
@@ -152,10 +152,10 @@ export function Addons() {
             <h3 className="mt-3 text-2xl font-medium tracking-tight">{dict.addons.merchTitle}</h3>
             <div className="mt-5 flex gap-8">
               <strong className="text-2xl">
-                $80<small className="ml-2 font-mono text-[10px] text-muted-foreground">{dict.addons.merchHalf}</small>
+                ${site.addons.merchHalfPrice}<small className="ml-2 font-mono text-[10px] text-muted-foreground">{dict.addons.merchHalf}</small>
               </strong>
               <strong className="text-2xl">
-                $150<small className="ml-2 font-mono text-[10px] text-muted-foreground">{dict.addons.merchFull}</small>
+                ${site.addons.merchFullPrice}<small className="ml-2 font-mono text-[10px] text-muted-foreground">{dict.addons.merchFull}</small>
               </strong>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{dict.addons.merchBody}</p>
@@ -163,7 +163,7 @@ export function Addons() {
           <article className="rounded-2xl border border-border bg-card p-6">
             <span className="mono-label">{dict.addons.walkLabel}</span>
             <h3 className="mt-3 text-2xl font-medium tracking-tight">{dict.addons.walkTitle}</h3>
-            <strong className="mt-5 block text-2xl">$250</strong>
+            <strong className="mt-5 block text-2xl">${site.addons.walkPrice}</strong>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{dict.addons.walkBody}</p>
           </article>
           <article className="rounded-2xl border border-border bg-card p-6">

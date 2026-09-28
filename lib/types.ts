@@ -1,3 +1,5 @@
+import type { SiteContent } from "./site-content";
+
 export type Face = "front" | "back" | "left" | "right";
 export type ApproachPhase = "idle" | "approaching" | "focused" | "returning";
 export type SpotStatus = "available" | "reserved" | "sold";
@@ -67,6 +69,7 @@ export type StoreShape = {
   positions: Record<string, PositionState>;
   payments: PaymentRecord[];
   offers: OfferRecord[];
+  siteContent?: SiteContent;
   updatedAt: string;
 };
 

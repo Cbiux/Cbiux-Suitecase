@@ -17,15 +17,15 @@ import {
   HowItWorks,
   WhatYouGet,
 } from "@/components/site-sections";
-import { getInventory } from "@/lib/store";
+import { getInventory, getSiteContent } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const inventory = await getInventory("es");
+  const [inventory, site] = await Promise.all([getInventory("es"), getSiteContent()]);
 
   return (
-    <LanguageProvider>
+    <LanguageProvider initialSite={site}>
       <CurrencyProvider>
         <InventoryProvider initial={inventory}>
         <Header />

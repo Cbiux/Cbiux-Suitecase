@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { AdminArtwork } from "./admin-artwork";
 import { AdminMerge } from "./admin-merge";
+import { AdminRoute } from "./admin-route";
+import { AdminSite } from "./admin-site";
 import { AdminSponsors } from "./admin-sponsors";
 import { AdminThanksCard } from "./admin-thanks";
 import { AdminThanksMail } from "./admin-thanks-mail";
@@ -21,6 +23,7 @@ import {
 import { padSpot } from "@/lib/positions";
 import { visiblePlates } from "@/lib/spot-groups";
 import type { DisplayPlate } from "@/lib/spot-groups";
+import type { SiteContent } from "@/lib/site-content";
 import { whatsappHref } from "@/lib/phone";
 import type { LivePosition, OfferRecord, OfferStatus, PaymentRecord } from "@/lib/types";
 
@@ -28,9 +31,10 @@ type AdminData = {
   positions: LivePosition[];
   payments: PaymentRecord[];
   offers: OfferRecord[];
+  siteContent: SiteContent;
 };
 
-type AdminTab = "inbox" | "sponsors" | "merge" | "mail" | "art";
+type AdminTab = "inbox" | "sponsors" | "merge" | "route" | "site" | "mail" | "art";
 
 export function AdminLogin() {
   const [password, setPassword] = useState("");
@@ -115,7 +119,13 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
 
   async function load() {
     const response = await fetch("/api/admin/spots", { cache: "no-store" });
-    if (response.ok) setData((await response.json()) as AdminData);
+    if (!response.ok) return;
+    const json = (await response.json()) as AdminData;
+    setData((current) => ({
+      ...current,
+      ...json,
+      siteContent: json.siteContent ?? current.siteContent,
+    }));
   }
 
   async function updateSpot(positionId: number, patch: Record<string, unknown>) {
@@ -190,6 +200,8 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
     { id: "inbox", label: "Bandeja" },
     { id: "sponsors", label: "Patrocinadores" },
     { id: "merge", label: "Juntar" },
+    { id: "route", label: "Ruta" },
+    { id: "site", label: "Textos" },
     { id: "mail", label: "Correo" },
     { id: "art", label: "Arte" },
   ];
@@ -201,8 +213,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
           <p className="mono-label text-primary">admin</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Solicitudes</h1>
           <p className="mt-2 max-w-[52ch] text-sm text-muted-foreground">
-            Editá patrocinadores, confirmá reservas y mandá el correo de gracias con las dos imágenes.
-            WhatsApp queda como enlace; el pack sale por email.
+            Editá las ciudades del mapa, los textos de la home, patrocinadores y el correo de gracias.
           </p>
           <div className="mt-3">
             <CoordContacts compact />
@@ -294,6 +305,24 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
       {tab === "merge" ? (
         <div className="mt-10">
           <AdminMerge positions={data.positions} onUpdate={updateSpot} />
+        </div>
+      ) : null}
+
+      {tab === "route" ? (
+        <div className="mt-10">
+          <AdminRoute
+            initial={data.siteContent}
+            onSaved={(siteContent) => setData((current) => ({ ...current, siteContent }))}
+          />
+        </div>
+      ) : null}
+
+      {tab === "site" ? (
+        <div className="mt-10">
+          <AdminSite
+            initial={data.siteContent}
+            onSaved={(siteContent) => setData((current) => ({ ...current, siteContent }))}
+          />
         </div>
       ) : null}
 

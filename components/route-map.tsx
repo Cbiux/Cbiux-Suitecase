@@ -2,7 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { padStop, PLACE_IDS, PLACES, ROUTE_VISITS, type PlaceId } from "@/lib/trip-route";
+import { padStop } from "@/lib/trip-route";
+import { playableVisits, siteArcs, siteLabels } from "@/lib/site-content";
 import { useLanguage } from "./language-provider";
 import { AnimatedLetters } from "./animated-letters";
 
@@ -18,7 +19,7 @@ function reduceMotionSubscribe(onStoreChange: () => void) {
 }
 
 export function RouteMap() {
-  const { dict } = useLanguage();
+  const { dict, locale, site } = useLanguage();
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const reduceMotion = useSyncExternalStore(
@@ -27,37 +28,47 @@ export function RouteMap() {
     () => false,
   );
 
-  const stops = dict.route.stops as ReadonlyArray<{
-    city: string;
-    region: string;
-    note: string;
-  }>;
-
-  const labels = useMemo(
-    () =>
-      PLACE_IDS.map((id) => {
-        const visit = dict.route.stops[ROUTE_VISITS.indexOf(id)];
-        return { id, ...PLACES[id], text: visit?.city ?? id };
-      }),
-    [dict.route.stops],
+  const visits = site.visits;
+  const playable = useMemo(() => playableVisits(site), [site]);
+  const playableIndexes = useMemo(
+    () => visits.map((visit, index) => (visit.status === "cancelled" ? -1 : index)).filter((index) => index >= 0),
+    [visits],
   );
+  const labels = useMemo(() => siteLabels(site, locale), [site, locale]);
+  const arcs = useMemo(() => siteArcs(site), [site]);
+  const home = useMemo(() => {
+    if (playable.length === 0) return [{ lat: 9.9281, lng: -84.0907 }];
+    return [
+      { lat: playable[0].lat, lng: playable[0].lng },
+      { lat: playable[playable.length - 1].lat, lng: playable[playable.length - 1].lng },
+    ];
+  }, [playable]);
+  const activeVisit = activeIndex == null ? null : visits[activeIndex];
+  const activeArcIndex = activeVisit
+    ? playable.findIndex((visit) => visit.id === activeVisit.id)
+    : null;
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || playableIndexes.length === 0) return;
     const timer = window.setInterval(() => {
-      setActiveIndex((current) => ((current ?? 0) + 1) % ROUTE_VISITS.length);
+      setActiveIndex((current) => {
+        const position = playableIndexes.indexOf(current ?? playableIndexes[0]);
+        const next = playableIndexes[(position + 1) % playableIndexes.length];
+        return next;
+      });
     }, reduceMotion ? 1600 : 2200);
     return () => window.clearInterval(timer);
-  }, [playing, reduceMotion]);
+  }, [playing, reduceMotion, playableIndexes]);
 
   function selectVisit(index: number) {
     setPlaying(false);
     setActiveIndex((current) => (current === index ? null : index));
   }
 
-  function selectPlace(id: PlaceId) {
+  function selectPlace(id: string) {
     setPlaying(false);
-    setActiveIndex(ROUTE_VISITS.indexOf(id));
+    const index = visits.findIndex((visit) => visit.id === id);
+    setActiveIndex(index >= 0 ? index : null);
   }
 
   function togglePlay() {
@@ -65,7 +76,7 @@ export function RouteMap() {
       setPlaying(false);
       return;
     }
-    setActiveIndex((current) => current ?? 0);
+    setActiveIndex((current) => current ?? playableIndexes[0] ?? 0);
     setPlaying(true);
   }
 
@@ -92,17 +103,23 @@ export function RouteMap() {
             </p>
           </div>
           <ol className="grid gap-2 sm:grid-cols-2">
-            {stops.map((stop, index) => {
+            {visits.map((stop, index) => {
               const active = activeIndex === index;
+              const cancelled = stop.status === "cancelled";
+              const city = locale === "en" && stop.city.en.trim() ? stop.city.en : stop.city.es;
+              const note = locale === "en" && stop.note.en.trim() ? stop.note.en : stop.note.es;
+              const region = locale === "en" && stop.region.en.trim() ? stop.region.en : stop.region.es;
               return (
-                <li key={`${stop.city}-${index}`}>
+                <li key={stop.id}>
                   <button
                     type="button"
                     onClick={() => selectVisit(index)}
                     className={`flex min-h-14 w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-[border-color,background-color,color] ${
                       active
                         ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-card hover:border-primary/40"
+                        : cancelled
+                          ? "border-border bg-muted/50 text-muted-foreground"
+                          : "border-border bg-card hover:border-primary/40"
                     }`}
                   >
                     <span
@@ -113,13 +130,19 @@ export function RouteMap() {
                       {padStop(index)}
                     </span>
                     <span className="min-w-0">
-                      <strong className="block text-sm font-medium tracking-tight">{stop.city}</strong>
+                      <strong className={`block text-sm font-medium tracking-tight ${cancelled ? "line-through" : ""}`}>
+                        {city}
+                      </strong>
                       <span
                         className={`block text-[11px] ${
                           active ? "text-primary-foreground/80" : "text-muted-foreground"
                         }`}
                       >
-                        {stop.note || stop.region}
+                        {cancelled
+                          ? locale === "en"
+                            ? "Cancelled"
+                            : "Cancelado"
+                          : note || region}
                       </span>
                     </span>
                   </button>
@@ -133,7 +156,11 @@ export function RouteMap() {
           <div className="aspect-[4/5] sm:aspect-[5/4] lg:aspect-[4/5] xl:aspect-[5/4]">
             <TripGlobe
               labels={labels}
-              activeIndex={activeIndex}
+              arcs={arcs}
+              focus={activeVisit ? { lat: activeVisit.lat, lng: activeVisit.lng } : null}
+              home={home}
+              activePlaceId={activeVisit?.id ?? null}
+              activeArcIndex={activeArcIndex != null && activeArcIndex >= 0 ? activeArcIndex : null}
               reduceMotion={reduceMotion}
               zoomInLabel={dict.route.zoomIn}
               zoomOutLabel={dict.route.zoomOut}

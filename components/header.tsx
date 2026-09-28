@@ -1,6 +1,7 @@
 "use client";
 
 import { SITE } from "@/lib/config";
+import { pickLocale } from "@/lib/site-content";
 import { useLanguage } from "./language-provider";
 import { useInventory } from "./inventory-provider";
 import { ThemeToggle } from "./theme-toggle";
@@ -8,12 +9,18 @@ import { CurrencyToggle } from "./currency-toggle";
 import { BrandLogo } from "./brand-logo";
 
 export function Header() {
-  const { locale, setLocale, dict } = useLanguage();
+  const { locale, setLocale, dict, site } = useLanguage();
   const { openClaim, data } = useInventory();
   const firstAvailable = data?.positions.find((p) => p.status === "available");
+  const banner = site.banner.enabled ? pickLocale(locale, site.banner.text) : "";
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/80 bg-background/90 backdrop-blur-md">
+      {banner ? (
+        <p className="border-b border-[#e6b800]/60 bg-[#fff8e4] px-4 py-2 text-center text-sm text-[#6b4f00] dark:bg-[#3a320f] dark:text-[#ffd54a]">
+          {banner}
+        </p>
+      ) : null}
       <div className="shell flex h-14 items-center justify-between gap-3 md:h-16">
         <a href="#main" className="flex items-center gap-2 text-foreground">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">

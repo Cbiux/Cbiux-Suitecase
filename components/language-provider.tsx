@@ -2,12 +2,14 @@
 
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
 import { t } from "@/lib/i18n";
+import { applySiteToDict, defaultSiteContent, type SiteContent } from "@/lib/site-content";
 import type { Locale } from "@/lib/types";
 
 type LanguageContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
   dict: ReturnType<typeof t>;
+  site: SiteContent;
 };
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -30,8 +32,15 @@ function subscribe(callback: () => void) {
   };
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+export function LanguageProvider({
+  children,
+  initialSite,
+}: {
+  children: React.ReactNode;
+  initialSite?: SiteContent;
+}) {
   const locale = useSyncExternalStore(subscribe, readLocale, () => "es" as Locale);
+  const site = initialSite ?? defaultSiteContent();
 
   const setLocale = (next: Locale) => {
     window.localStorage.setItem("cbiux-locale", next);
@@ -43,13 +52,11 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo(
-    () => ({ locale, setLocale, dict: t(locale) }),
-    [locale],
+    () => ({ locale, setLocale, dict: applySiteToDict(locale, site), site }),
+    [locale, site],
   );
 
-  return (
-    <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
