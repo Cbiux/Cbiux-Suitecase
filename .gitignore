@@ -36,6 +36,7 @@ yarn-error.log*
 
 # runtime inventory (seed lives in lib/ + data/positions.seed.json)
 /data/store.json
+/data/*-backup.json
 /public/uploads
 
 # local agent scratch

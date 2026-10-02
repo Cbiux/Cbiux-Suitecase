@@ -86,14 +86,7 @@ function mergeStore(raw: StoreShape | null): StoreShape {
 async function readStore(): Promise<StoreShape> {
   const raw = await loadStoreRaw();
   if (!raw) {
-    const seeded = seedStore();
-    try {
-      await persist(seeded);
-    } catch (error) {
-      console.error("[store] could not persist empty inventory");
-      console.error(error);
-    }
-    return seeded;
+    return seedStore();
   }
   try {
     return mergeStore(JSON.parse(raw) as StoreShape);
@@ -428,7 +421,9 @@ export async function adminUpdateSiteContent(input: unknown, options: { reset?: 
       await persist(store);
       return defaultSiteContent();
     }
-    store.siteContent = parseSiteContent(input);
+    const current = store.siteContent ? parseSiteContent(store.siteContent) : defaultSiteContent();
+    const incoming = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
+    store.siteContent = parseSiteContent({ ...current, ...incoming });
     await persist(store);
     return store.siteContent;
   });

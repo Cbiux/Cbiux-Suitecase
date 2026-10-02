@@ -1,6 +1,6 @@
 import { promises as fs } from "fs";
 import path from "path";
-import { get as getBlob, put as putBlob } from "@vercel/blob";
+import { get as getBlob, head as headBlob, put as putBlob } from "@vercel/blob";
 import type { StoreShape } from "./types";
 
 const REDIS_KEY = "cbiux-store";
@@ -86,6 +86,38 @@ function asPayload(value: unknown): string | null {
   return JSON.stringify(value);
 }
 
+function inventoryLooksEmpty(raw: string) {
+  try {
+    const parsed = JSON.parse(raw) as StoreShape;
+    const payments = parsed.payments?.length ?? 0;
+    const offers = parsed.offers?.length ?? 0;
+    if (payments > 0 || offers > 0) return false;
+    const positions = Object.values(parsed.positions ?? {});
+    if (positions.length === 0) return true;
+    return positions.every((state) => {
+      const status = state?.status || "available";
+      return (
+        status === "available" &&
+        !String(state?.sponsor || "").trim() &&
+        !String(state?.logo || "").trim() &&
+        !String(state?.email || "").trim()
+      );
+    });
+  } catch {
+    return false;
+  }
+}
+
+async function blobHasStoredInventory() {
+  if (!blobConfigured()) return false;
+  try {
+    const meta = await headBlob(BLOB_PATH);
+    return (meta?.size ?? 0) > 50_000;
+  } catch {
+    return false;
+  }
+}
+
 async function loadFromBlob(): Promise<string | null> {
   if (!blobConfigured()) return null;
   const result = await getBlob(BLOB_PATH, { access: "private", useCache: false });
@@ -135,14 +167,14 @@ async function loadFromFile(): Promise<string | null> {
 
 export async function loadStoreRaw(): Promise<string | null> {
   try {
-    const blobValue = await loadFromBlob();
-    if (blobValue) {
-      memoryCache = blobValue;
-      return blobValue;
+    const neonValue = await loadFromNeon();
+    if (neonValue) {
+      memoryCache = neonValue;
+      return neonValue;
     }
   } catch (error) {
-    console.error("[persist] blob read failed");
-    console.error(error);
+    rememberNeonFailure(error);
+    console.error("[persist] neon read failed");
   }
 
   try {
@@ -156,17 +188,15 @@ export async function loadStoreRaw(): Promise<string | null> {
     console.error(error);
   }
 
-  if (!blobConfigured()) {
-    try {
-      const neonValue = await loadFromNeon();
-      if (neonValue) {
-        memoryCache = neonValue;
-        return neonValue;
-      }
-    } catch (error) {
-      rememberNeonFailure(error);
-      console.error("[persist] neon read failed");
+  try {
+    const blobValue = await loadFromBlob();
+    if (blobValue) {
+      memoryCache = blobValue;
+      return blobValue;
     }
+  } catch (error) {
+    console.error("[persist] blob read failed");
+    console.error(error);
   }
 
   if (memoryCache) return memoryCache;
@@ -242,22 +272,21 @@ async function saveToFile(json: string) {
 }
 
 export async function saveStoreRaw(json: string) {
+  const neonHasData = await (async () => {
+    try {
+      const existing = memoryCache || (await loadFromNeon());
+      return Boolean(existing && !inventoryLooksEmpty(existing));
+    } catch {
+      return false;
+    }
+  })();
+  if (inventoryLooksEmpty(json) && (neonHasData || (await blobHasStoredInventory()))) {
+    console.error("[persist] refusing to overwrite a stored inventory with an empty catalog");
+    throw new Error("REFUSE_EMPTY_STORE");
+  }
+
   memoryCache = json;
   const errors: unknown[] = [];
-
-  try {
-    if (await saveToBlob(json)) return;
-  } catch (error) {
-    errors.push(error);
-    console.error("[persist] blob write failed");
-  }
-
-  try {
-    if (await saveToRedis(json)) return;
-  } catch (error) {
-    errors.push(error);
-    console.error("[persist] redis write failed");
-  }
 
   try {
     if (await saveToNeon(json)) return;
@@ -265,6 +294,13 @@ export async function saveStoreRaw(json: string) {
     rememberNeonFailure(error);
     errors.push(error);
     console.error("[persist] neon write failed");
+  }
+
+  try {
+    if (await saveToRedis(json)) return;
+  } catch (error) {
+    errors.push(error);
+    console.error("[persist] redis write failed");
   }
 
   try {
