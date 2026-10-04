@@ -176,7 +176,7 @@ function SponsorCard({
     try {
       await onUpdate(spot.id, { status, sponsor, email, phone });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo guardar.");
+      setError(mailErrorLabel(err instanceof Error ? err.message : "UPDATE_FAILED"));
     } finally {
       setBusy(false);
     }

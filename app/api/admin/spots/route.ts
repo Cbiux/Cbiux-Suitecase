@@ -3,6 +3,7 @@ import { adminList, adminUpdateSpot } from "@/lib/store";
 import type { SpotStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export async function GET() {
   if (!(await isAdminRequest())) {

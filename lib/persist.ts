@@ -1,7 +1,20 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { get as getBlob, head as headBlob, put as putBlob } from "@vercel/blob";
+import {
+  loadDurableCatalog,
+  resetDurableCatalogForTests,
+  saveDurableCatalog,
+} from "./catalog-git";
+import { inventoryLooksEmpty, preserveDroppedLogos } from "./catalog-snapshot";
 import type { StoreShape } from "./types";
+
+export type PersistOptions = {
+  allowClearPositionIds?: number[];
+  allowEmpty?: boolean;
+};
+
+export { inventoryLooksEmpty };
 
 const REDIS_KEY = "cbiux-store";
 const NEON_KEY = "cbiux-store";
@@ -86,28 +99,6 @@ function asPayload(value: unknown): string | null {
   return JSON.stringify(value);
 }
 
-function inventoryLooksEmpty(raw: string) {
-  try {
-    const parsed = JSON.parse(raw) as StoreShape;
-    const payments = parsed.payments?.length ?? 0;
-    const offers = parsed.offers?.length ?? 0;
-    if (payments > 0 || offers > 0) return false;
-    const positions = Object.values(parsed.positions ?? {});
-    if (positions.length === 0) return true;
-    return positions.every((state) => {
-      const status = state?.status || "available";
-      return (
-        status === "available" &&
-        !String(state?.sponsor || "").trim() &&
-        !String(state?.logo || "").trim() &&
-        !String(state?.email || "").trim()
-      );
-    });
-  } catch {
-    return false;
-  }
-}
-
 async function blobHasStoredInventory() {
   if (!blobConfigured()) return false;
   try {
@@ -165,42 +156,60 @@ async function loadFromFile(): Promise<string | null> {
   }
 }
 
+function keep(raw: string | null) {
+  if (!raw || inventoryLooksEmpty(raw)) return null;
+  memoryCache = raw;
+  return raw;
+}
+
+export function resetPersistStateForTests() {
+  memoryCache = null;
+  neonBlockedUntil = 0;
+  neonReady = null;
+  resetDurableCatalogForTests();
+}
+
 export async function loadStoreRaw(): Promise<string | null> {
+  // Git catalog is the copy that still exists when Neon answers 402 and Blob is suspended.
+  const durable = await loadDurableCatalog();
+  if (durable.ok) {
+    const cached = keep(durable.json);
+    if (cached) return cached;
+  } else if (memoryCache && !inventoryLooksEmpty(memoryCache)) {
+    return memoryCache;
+  }
+
   try {
-    const neonValue = await loadFromNeon();
-    if (neonValue) {
-      memoryCache = neonValue;
-      return neonValue;
-    }
+    const neonValue = keep(await loadFromNeon());
+    if (neonValue) return neonValue;
   } catch (error) {
     rememberNeonFailure(error);
     console.error("[persist] neon read failed");
   }
 
   try {
-    const redisValue = await loadFromRedis();
-    if (redisValue) {
-      memoryCache = redisValue;
-      return redisValue;
-    }
+    const redisValue = keep(await loadFromRedis());
+    if (redisValue) return redisValue;
   } catch (error) {
-    console.error("[persist] redis read failed");
-    console.error(error);
+    console.error("[persist] redis read failed", error instanceof Error ? error.message : "");
   }
 
   try {
-    const blobValue = await loadFromBlob();
-    if (blobValue) {
-      memoryCache = blobValue;
-      return blobValue;
-    }
+    const blobValue = keep(await loadFromBlob());
+    if (blobValue) return blobValue;
   } catch (error) {
-    console.error("[persist] blob read failed");
-    console.error(error);
+    console.error("[persist] blob read failed", error instanceof Error ? error.message : "");
   }
 
-  if (memoryCache) return memoryCache;
-  return loadFromFile();
+  if (memoryCache && !inventoryLooksEmpty(memoryCache)) return memoryCache;
+  const fileValue = keep(await loadFromFile());
+  if (fileValue) return fileValue;
+  if (!durable.ok) {
+    throw new Error(
+      durable.reason === "NEED_CATALOG_SECRET" ? "NEED_CATALOG_SECRET" : "CATALOG_UNREADABLE",
+    );
+  }
+  return null;
 }
 
 export async function restoreFromNeon() {
@@ -271,44 +280,80 @@ async function saveToFile(json: string) {
   await fs.writeFile(/*turbopackIgnore: true*/ file, json);
 }
 
-export async function saveStoreRaw(json: string) {
-  const neonHasData = await (async () => {
-    try {
-      const existing = memoryCache || (await loadFromNeon());
-      return Boolean(existing && !inventoryLooksEmpty(existing));
-    } catch {
-      return false;
-    }
-  })();
-  if (inventoryLooksEmpty(json) && (neonHasData || (await blobHasStoredInventory()))) {
-    console.error("[persist] refusing to overwrite a stored inventory with an empty catalog");
-    throw new Error("REFUSE_EMPTY_STORE");
-  }
-
-  memoryCache = json;
-  const errors: unknown[] = [];
-
+async function knownReplicaHasInventory() {
   try {
-    if (await saveToNeon(json)) return;
+    const existing = memoryCache || (await loadFromNeon());
+    if (existing && !inventoryLooksEmpty(existing)) return true;
   } catch (error) {
     rememberNeonFailure(error);
-    errors.push(error);
+  }
+  return blobHasStoredInventory();
+}
+
+async function replicateStore(json: string) {
+  try {
+    await saveToNeon(json);
+  } catch (error) {
+    rememberNeonFailure(error);
     console.error("[persist] neon write failed");
   }
-
   try {
-    if (await saveToRedis(json)) return;
+    await saveToRedis(json);
   } catch (error) {
-    errors.push(error);
-    console.error("[persist] redis write failed");
+    console.error("[persist] redis write failed", error instanceof Error ? error.message : "");
   }
-
+  try {
+    await saveToBlob(json);
+  } catch (error) {
+    console.error("[persist] blob write failed", error instanceof Error ? error.message : "");
+  }
   try {
     await saveToFile(json);
-    return;
   } catch (error) {
-    errors.push(error);
+    console.error("[persist] file write failed", error instanceof Error ? error.message : "");
+  }
+}
+
+export async function saveStoreRaw(json: string, options: PersistOptions = {}) {
+  if (process.env.VERCEL === "1" && !process.env.CATALOG_GITHUB_TOKEN?.trim()) {
+    throw new Error("NEED_CATALOG_TOKEN");
+  }
+  const allowClear = options.allowClearPositionIds ?? [];
+  const durable = await loadDurableCatalog({ fresh: true });
+  if (!durable.ok) {
+    if (!memoryCache || inventoryLooksEmpty(memoryCache)) {
+      throw new Error(
+        durable.reason === "NEED_CATALOG_TOKEN" || durable.reason === "NEED_CATALOG_SECRET"
+          ? durable.reason
+          : "CATALOG_UNREADABLE",
+      );
+    }
+    json = preserveDroppedLogos(json, memoryCache, allowClear);
+  } else if (durable.json) {
+    json = preserveDroppedLogos(json, durable.json, allowClear);
+    const clearing = allowClear.length > 0 || options.allowEmpty === true;
+    if (!clearing && inventoryLooksEmpty(json) && !inventoryLooksEmpty(durable.json)) {
+      console.error("[persist] refusing to overwrite a stored inventory with an empty catalog");
+      throw new Error("REFUSE_EMPTY_STORE");
+    }
   }
 
-  throw errors[0] instanceof Error ? errors[0] : new Error("STORE_SAVE_FAILED");
+  if (inventoryLooksEmpty(json) && !options.allowEmpty && allowClear.length === 0) {
+    if (await knownReplicaHasInventory()) {
+      console.error("[persist] refusing to overwrite a stored inventory with an empty catalog");
+      throw new Error("REFUSE_EMPTY_STORE");
+    }
+  }
+
+  const saved = await saveDurableCatalog(json, allowClear);
+  if (!saved.ok) {
+    throw new Error(
+      saved.reason === "NEED_CATALOG_TOKEN" || saved.reason === "NEED_CATALOG_SECRET"
+        ? saved.reason
+        : "CATALOG_SAVE_FAILED",
+    );
+  }
+
+  memoryCache = saved.json;
+  await replicateStore(saved.json);
 }
