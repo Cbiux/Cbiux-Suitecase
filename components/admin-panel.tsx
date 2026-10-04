@@ -32,6 +32,12 @@ type AdminData = {
   payments: PaymentRecord[];
   offers: OfferRecord[];
   siteContent: SiteContent;
+  catalogBackup?: {
+    durable: boolean;
+    repo: string;
+    branch: string;
+    path: string;
+  };
 };
 
 type AdminTab = "inbox" | "sponsors" | "merge" | "route" | "site" | "mail" | "art";
@@ -170,7 +176,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
     if (!response.ok || !body.restored) {
       setRestoreMsg(
         body.reason === "NEON_QUOTA"
-          ? "Neon sigue bloqueada por cuota. Los datos no se borraron; hay que esperar el 1 oct o subir el plan."
+          ? "Neon sigue bloqueada por cuota. Los logos guardados en la rama catalog siguen en el sitio; no hace falta pagar ni esperar el reset."
           : "No se pudo leer Neon.",
       );
       return;
@@ -215,6 +221,12 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
           <p className="mt-2 max-w-[52ch] text-sm text-muted-foreground">
             Editá las ciudades del mapa, los textos de la home, patrocinadores y el correo de gracias.
           </p>
+          {data.catalogBackup && !data.catalogBackup.durable ? (
+            <p className="mt-3 max-w-[62ch] text-sm text-destructive">
+              Falta <code>CATALOG_GITHUB_TOKEN</code> en Vercel. Cada logo se copia a la rama{" "}
+              <code>{data.catalogBackup.branch}</code> ({data.catalogBackup.path}). Sin ese token, un Neon 402 o un Blob suspendido vuelve a dejar el sitio vacío.
+            </p>
+          ) : null}
           <div className="mt-3">
             <CoordContacts compact />
           </div>

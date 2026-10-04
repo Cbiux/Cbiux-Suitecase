@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { ARTWORK_ACCEPT, ARTWORK_MAX_BYTES } from "@/lib/config";
 import { bakeLogoPlateCached } from "@/lib/logo-fit";
 import { artworkSpec, getCatalogById, padSpot } from "@/lib/positions";
+import { mailErrorLabel } from "@/components/admin-ui";
 
 type Kind = "logo" | "comprobante";
 
@@ -276,5 +277,7 @@ function artworkErrorMessage(code: string) {
   if (code === "TOO_LARGE") return "El archivo pesa más de 2 MB.";
   if (code === "BAD_IMAGE") return "Usá PNG, WebP, JPG o SVG.";
   if (code === "MISSING_FIELDS" || code === "MISSING_ARTWORK") return "Elegí un archivo de logo.";
+  const labeled = mailErrorLabel(code);
+  if (labeled !== code) return labeled;
   return "No se pudo guardar el logo.";
 }

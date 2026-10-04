@@ -84,6 +84,17 @@ export function mailErrorLabel(code: string) {
   if (code === "UNAUTHORIZED") return "La sesión de admin expiró. Volvé a entrar.";
   if (code === "TOO_LONG") return "Algún campo es demasiado largo.";
   if (code === "UPDATE_FAILED") return "No se pudo guardar.";
+  if (code === "NEED_CATALOG_TOKEN") {
+    return "Falta CATALOG_GITHUB_TOKEN en Vercel. Sin ese token el logo no queda guardado cuando Neon y Blob fallan.";
+  }
+  if (code === "NEED_CATALOG_SECRET") {
+    return "Falta ADMIN_PASSWORD o CATALOG_SECRET para cifrar la copia del catálogo.";
+  }
+  if (code === "CATALOG_UNREADABLE" || code === "CATALOG_DECRYPT_FAILED") {
+    return "No pude leer la copia en Git. No guardé nada para no borrar logos.";
+  }
+  if (code === "CATALOG_SAVE_FAILED") return "No pude escribir la copia en Git. El logo no se publicó.";
+  if (code === "REFUSE_EMPTY_STORE") return "No guardé un catálogo vacío encima de logos que ya estaban.";
   if (code === "INVALID_AMOUNT") return "Anotá un monto recibido mayor a 0.";
   if (code === "INVALID_METHOD") return "Elegí si fue SINPE, crypto o en especie.";
   if (code === "INVALID_CURRENCY") return "Elegí si el monto es en dólares o colones.";

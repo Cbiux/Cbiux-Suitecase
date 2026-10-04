@@ -35,7 +35,11 @@ yarn-error.log*
 !.env.example
 
 # runtime inventory (seed lives in lib/ + data/positions.seed.json)
+# The durable catalog is written to the git branch `catalog` via the GitHub API.
+# A local copy is encrypted and must not land on main by accident.
 /data/store.json
+/data/catalog.json
+/data/catalog.json.tmp
 /data/*-backup.json
 /public/uploads
 

@@ -3,6 +3,7 @@ import { adminList } from "@/lib/store";
 import { AdminBoard, AdminLogin } from "@/components/admin-panel";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default async function AdminPage() {
   if (!(await isAdminRequest())) {

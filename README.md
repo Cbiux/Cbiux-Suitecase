@@ -24,8 +24,11 @@ Abrí [http://localhost:43147](http://localhost:43147). El UI arranca en españo
 | `NEXT_PUBLIC_USDC_STELLAR_ADDRESS` | Wallet Stellar USDC. Default: `GAS52…5BS` |
 | `NEXT_PUBLIC_USDC_SOLANA_ADDRESS` | Wallet Solana (opcional, vacío si no hay) |
 | `ADMIN_PASSWORD` | Clave de `/admin` |
-| `DATABASE_URL` | Neon Postgres (obligatorio en prod para que lleguen las reservas) |
-| `UPSTASH_REDIS_REST_URL` | Redis legacy (solo si no hay Neon) |
+| `DATABASE_URL` | Neon Postgres, réplica opcional. Un 402 ya no vacía el sitio |
+| `BLOB_READ_WRITE_TOKEN` | Blob, réplica opcional. Un 403 ya no vacía el sitio |
+| `CATALOG_GITHUB_TOKEN` | Token de GitHub (Contents read/write). Obligatorio en Vercel para guardar logos |
+| `CATALOG_SECRET` | Clave para cifrar la copia. Si falta, se usa `ADMIN_PASSWORD` |
+| `UPSTASH_REDIS_REST_URL` | Redis legacy (réplica opcional) |
 | `UPSTASH_REDIS_REST_TOKEN` | Token de Upstash |
 | `PAYMENT_VERIFY_MODE` | `stub` (default) o `indexer` |
 | `NEXT_PUBLIC_HELIO_PAY_URL` | Paylink de Helio (opcional) |
@@ -41,7 +44,7 @@ Si `ADMIN_PASSWORD` no está definida, `/admin` acepta `123Cbiux@#$`.
 2. Cargá las env vars de arriba.
 3. Deploy.
 
-El inventario vive en **Neon Postgres** (`DATABASE_URL`) en producción. Sin esa variable, local usa `data/store.json` y Vercel cae a `/tmp` (efímero: las solicitudes de reserva se pierden entre instancias). Upstash Redis queda como fallback opcional.
+El inventario que ve el sitio se lee **primero** desde la copia en git (rama `catalog`, archivo `data/catalog.json`). Neon, Blob y Redis quedan como réplicas opcionales. En Vercel hace falta `CATALOG_GITHUB_TOKEN`: sin ese token un guardado no puede escribir la copia y el admin muestra el error en lugar de fingir que `/tmp` alcanzó. Ver [Copia durable](#copia-durable-git).
 
 ## Cómo se paga y se verifica
 
@@ -79,7 +82,45 @@ Helio sigue siendo opcional (`NEXT_PUBLIC_HELIO_PAY_URL`).
 - setear sponsor y URL/data-URL del logo
 - resetear una posición
 
-Los comprobantes SINPE se guardan como data URL comprimida (~2 MB) dentro del JSON del store en Neon. Sin `DATABASE_URL`, en Vercel el store vive en `/tmp` y **las solicitudes no llegan al admin** (cada instancia tiene su propio disco).
+Los comprobantes SINPE se guardan como data URL comprimida (~2 MB) dentro del mismo JSON. En producción ese JSON va cifrado a la rama `catalog`. Neon y Blob reciben una copia solo si responden; un 402 o un 403 no borra la copia de git ni la reemplaza por el seed vacío.
+
+## Copia durable (git)
+
+Cada guardado del admin (incluido un logo) escribe el inventario completo, cifrado, en `data/catalog.json` de la rama **`catalog`**. `/api/positions` lee ese archivo antes que Neon y Blob. Si Neon responde 402 o Blob está suspendido (403), el sitio sigue mostrando los logos de la última copia. Un segundo guardado parte de esa copia: no reemplaza el catálogo por el seed vacío.
+
+La rama `catalog` no redeploya el sitio (`scripts/vercel-ignore.sh`). El plan Hobby alcanza: no hace falta Neon pago ni Vercel Pro.
+
+### Token (una vez)
+
+1. GitHub → Settings → Developer settings → Fine-grained tokens.
+2. Acceso solo al repo `Cbiux/Cbiux-Suitecase`. Permiso **Contents: Read and write**.
+3. En Vercel, Production (y Preview si lo usás): `CATALOG_GITHUB_TOKEN` = ese token.
+4. Redeploy. En `/admin`, si el token falta, aparece el aviso y el guardado responde `NEED_CATALOG_TOKEN`.
+
+El archivo es público pero está cifrado con `CATALOG_SECRET` o, si no la definís, con `ADMIN_PASSWORD`. No cambies esa clave si querés seguir leyendo copias viejas.
+
+### Restaurar la última copia buena
+
+El sitio ya sirve la punta de `catalog`. Para volver a un guardado anterior:
+
+```bash
+git fetch origin catalog
+git log --oneline origin/catalog -- data/catalog.json
+git checkout -B catalog origin/catalog
+git show COMMIT:data/catalog.json > data/catalog.json
+git add -f data/catalog.json
+git commit -m "Restore sponsor catalog backup"
+git push origin catalog
+```
+
+Para ver nombres y si cada spot tiene logo, sin imprimir el base64:
+
+```bash
+git show origin/catalog:data/catalog.json > /tmp/catalog.json
+CATALOG_SECRET='la misma clave' npx tsx scripts/restore-catalog.ts /tmp/catalog.json
+```
+
+Eso no toca Neon. Cuando la cuota vuelva, el botón **Restaurar Neon** del admin sigue pudiendo leer la base; no pisa una copia con logos con un seed vacío.
 
 ## Precios
 

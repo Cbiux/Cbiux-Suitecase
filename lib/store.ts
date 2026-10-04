@@ -6,7 +6,8 @@ import { parseComprobanteDataUrl } from "./comprobante";
 import { parseArtworkDataUrl } from "./artwork";
 import { issueCheckoutGrant, readCheckoutGrant } from "./checkout-token";
 import { isValidEmail } from "./email";
-import { loadStoreRaw, saveStoreRaw } from "./persist";
+import { catalogBackupStatus } from "./catalog-git";
+import { loadStoreRaw, saveStoreRaw, type PersistOptions } from "./persist";
 import { canGlueCatalog } from "./spot-groups";
 import { parseSiteContent, defaultSiteContent, type SiteContent } from "./site-content";
 import {
@@ -97,9 +98,9 @@ async function readStore(): Promise<StoreShape> {
   }
 }
 
-async function persist(store: StoreShape) {
+async function persist(store: StoreShape, options?: PersistOptions) {
   store.updatedAt = new Date().toISOString();
-  await saveStoreRaw(JSON.stringify(store, null, 2));
+  await saveStoreRaw(JSON.stringify(store, null, 2), options);
 }
 
 function withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -112,16 +113,16 @@ function withLock<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 function expireReservations(store: StoreShape) {
-  let changed = false;
+  const cleared: number[] = [];
   for (const [key, state] of Object.entries(store.positions)) {
     if (state.status !== "reserved") continue;
     // Solo hay reserva real cuando ya mandaron comprobante. El resto se libera.
     if (state.comprobante) continue;
     detachFromMerge(store, Number(key));
     store.positions[key] = emptyState();
-    changed = true;
+    cleared.push(Number(key));
   }
-  return changed;
+  return cleared;
 }
 
 function token() {
@@ -177,9 +178,10 @@ export async function getInventory(locale: Locale = "es"): Promise<InventoryResp
   try {
     return await withLock(async () => {
       const store = await readStore();
-      if (expireReservations(store)) {
+      const cleared = expireReservations(store);
+      if (cleared.length) {
         try {
-          await persist(store);
+          await persist(store, { allowClearPositionIds: cleared });
         } catch (error) {
           console.error("[store] could not persist expired holds");
           console.error(error);
@@ -203,7 +205,8 @@ export async function startCheckout(input: {
 }) {
   return withLock(async () => {
     const store = await readStore();
-    if (expireReservations(store)) await persist(store);
+    const cleared = expireReservations(store);
+    if (cleared.length) await persist(store, { allowClearPositionIds: cleared });
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
     const state = store.positions[String(catalog.id)];
@@ -246,7 +249,7 @@ export async function verifyPayment(input: {
 }) {
   return withLock(async () => {
     const store = await readStore();
-    expireReservations(store);
+    const cleared = expireReservations(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
     const state = restoreReservation(store, catalog.id, input.recoveryToken, {
@@ -292,7 +295,7 @@ export async function verifyPayment(input: {
       comprobante: receipt,
     };
     store.payments.push(record);
-    await persist(store);
+    await persist(store, { allowClearPositionIds: cleared });
     return { alreadySold: false, positionId: catalog.id, payment: record };
   });
 }
@@ -307,7 +310,7 @@ export async function submitSinpe(input: {
 }) {
   return withLock(async () => {
     const store = await readStore();
-    expireReservations(store);
+    const cleared = expireReservations(store);
     const catalog = POSITION_CATALOG.find((p) => p.id === input.positionId);
     if (!catalog) throw new Error("UNKNOWN_POSITION");
     if (!input.comprobante?.trim()) throw new Error("MISSING_COMPROBANTE");
@@ -336,7 +339,7 @@ export async function submitSinpe(input: {
         Date.now() + SINPE_HOLD_HOURS * 60 * 60_000,
       ).toISOString(),
     };
-    await persist(store);
+    await persist(store, { allowClearPositionIds: cleared });
     return {
       positionId: catalog.id,
       status: "reserved" as const,
@@ -353,7 +356,7 @@ export async function publishLogo(input: {
 }) {
   return withLock(async () => {
     const store = await readStore();
-    expireReservations(store);
+    const cleared = expireReservations(store);
     const state = restoreReservation(store, input.positionId, input.recoveryToken);
     if (state.status !== "sold" && state.status !== "reserved") {
       throw new Error("NOT_RESERVED");
@@ -363,7 +366,7 @@ export async function publishLogo(input: {
       ...state,
       logo,
     };
-    await persist(store);
+    await persist(store, { allowClearPositionIds: cleared });
     return { logo };
   });
 }
@@ -372,9 +375,10 @@ export async function adminList() {
   try {
     return await withLock(async () => {
       const store = await readStore();
-      if (expireReservations(store)) {
+      const cleared = expireReservations(store);
+      if (cleared.length) {
         try {
-          await persist(store);
+          await persist(store, { allowClearPositionIds: cleared });
         } catch (error) {
           console.error("[store] could not persist expired holds");
           console.error(error);
@@ -386,6 +390,7 @@ export async function adminList() {
         offers: store.offers ?? [],
         siteContent: parseSiteContent(store.siteContent),
         updatedAt: store.updatedAt,
+        catalogBackup: catalogBackupStatus(),
       };
     });
   } catch (error) {
@@ -398,6 +403,7 @@ export async function adminList() {
       offers: [],
       siteContent: defaultSiteContent(),
       updatedAt: store.updatedAt,
+      catalogBackup: catalogBackupStatus(),
     };
   }
 }
@@ -524,6 +530,8 @@ export async function adminUpdateSpot(input: {
     if (input.release) {
       detachFromMerge(store, catalog.id);
       store.positions[String(catalog.id)] = emptyState();
+      await persist(store, { allowClearPositionIds: [catalog.id], allowEmpty: true });
+      return hydratePositions(store, "es", { includePrivate: true }).find((p) => p.id === catalog.id);
     } else if (input.unmerge) {
       unmergeGroup(store, catalog.id);
     } else if (input.mergeWith) {
