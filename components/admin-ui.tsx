@@ -82,6 +82,7 @@ export function mailErrorLabel(code: string) {
   if (code === "IMAGE_TOO_LARGE") return "Las imágenes pesaron demasiado. Probá de nuevo.";
   if (code === "MAIL_SEND_FAILED") return "Resend no pudo enviar el correo.";
   if (code === "UNAUTHORIZED") return "La sesión de admin expiró. Volvé a entrar.";
+  if (code === "GEOCODE_FAILED") return "No pude buscar la ciudad. Probá de nuevo o agregala a mano.";
   if (code === "TOO_LONG") return "Algún campo es demasiado largo.";
   if (code === "UPDATE_FAILED") return "No se pudo guardar.";
   if (code === "NEED_CATALOG_TOKEN") {

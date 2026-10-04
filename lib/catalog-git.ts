@@ -177,7 +177,7 @@ async function readLocalFile() {
   const file = localCatalogPath();
   if (!file) return null;
   try {
-    const text = await fs.readFile(file, "utf8");
+    const text = await fs.readFile(/*turbopackIgnore: true*/ file, "utf8");
     return text.trim() ? text : null;
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
@@ -189,10 +189,10 @@ async function readLocalFile() {
 async function writeLocalFile(encrypted: string) {
   const file = localCatalogPath();
   if (!file) throw new Error("NEED_CATALOG_TOKEN");
-  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.mkdir(/*turbopackIgnore: true*/ path.dirname(file), { recursive: true });
   const tmp = `${file}.tmp`;
-  await fs.writeFile(tmp, encrypted);
-  await fs.rename(tmp, file);
+  await fs.writeFile(/*turbopackIgnore: true*/ tmp, encrypted);
+  await fs.rename(/*turbopackIgnore: true*/ tmp, file);
 }
 
 type GitRef = { commitSha: string; treeSha: string };

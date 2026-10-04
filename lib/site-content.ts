@@ -322,8 +322,10 @@ function parseNum(raw: unknown, fallback: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+export const MAX_VISITS = 80;
+
 function newId(prefix: string) {
-  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function parseCard(raw: unknown, fallback: SiteCard | undefined, index: number, prefix: string): SiteCard {
@@ -375,7 +377,7 @@ function parseVisit(raw: unknown, fallback: SiteVisit | undefined, index: number
     } satisfies SiteVisit);
   const status = record.status === "cancelled" ? "cancelled" : "planned";
   return {
-    id: clip(record.id, 40) || base.id,
+    id: clip(record.id, 80) || base.id,
     lat: parseNum(record.lat, base.lat, -90, 90),
     lng: parseNum(record.lng, base.lng, -180, 180),
     city: parseLoc(record.city, base.city, 80),
@@ -565,9 +567,9 @@ export function parseSiteContent(raw: unknown): SiteContent {
       ),
     },
     visits: Array.isArray(visitsRaw)
-      ? visitsRaw.slice(0, 40).map((item, index) => parseVisit(item, base.visits[index], index))
+      ? visitsRaw.slice(0, MAX_VISITS).map((item, index) => parseVisit(item, undefined, index))
       : base.visits,
-    outboundHops: parseNum(doc.outboundHops, base.outboundHops, 0, 40),
+    outboundHops: parseNum(doc.outboundHops, base.outboundHops, 0, MAX_VISITS),
     funds: {
       kicker: parseLoc(
         doc.funds && typeof doc.funds === "object" ? (doc.funds as { kicker?: unknown }).kicker : {},
@@ -935,6 +937,18 @@ export function visitFromPreset(preset: ReturnType<typeof cityPresets>[number]):
   return {
     ...emptyVisit(),
     ...preset,
+    status: "planned",
+  };
+}
+
+export function visitFromGeocode(hit: { name: string; region: string; lat: number; lng: number }): SiteVisit {
+  return {
+    ...emptyVisit(),
+    lat: hit.lat,
+    lng: hit.lng,
+    city: L(hit.name, hit.name),
+    region: L(hit.region, hit.region),
+    note: L("", ""),
     status: "planned",
   };
 }

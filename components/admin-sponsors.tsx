@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AdminArtwork } from "@/components/admin-artwork";
 import { adminActionBtn, formatWhen, mailErrorLabel, ReceivedAccountsCard, StatusPill } from "@/components/admin-ui";
-import { getCatalogById, padSpot } from "@/lib/positions";
-import { combinedSize, groupedMemberIds } from "@/lib/spot-groups";
-import { whatsappHref } from "@/lib/phone";
+import { ARTWORK_ACCEPT, ARTWORK_MAX_BYTES } from "@/lib/config";
 import { isValidEmail } from "@/lib/email";
+import { faceLabel } from "@/lib/i18n";
+import { bakeLogoPlateCached } from "@/lib/logo-fit";
+import { whatsappHref } from "@/lib/phone";
+import { artworkSpec, getCatalogById, padSpot } from "@/lib/positions";
 import {
   defaultReceivedCurrency,
   formatReceivedBookkeeping,
@@ -16,7 +18,10 @@ import {
   guessReceivedMethod,
   receivedMethodLabel,
 } from "@/lib/received";
+import { combinedSize, groupedMemberIds } from "@/lib/spot-groups";
 import type { LivePosition, ReceivedCurrency, ReceivedMethod, SpotStatus } from "@/lib/types";
+
+type SponsorView = "free" | "sold" | "all";
 
 export function AdminSponsors({
   positions,
@@ -34,16 +39,27 @@ export function AdminSponsors({
     [positions],
   );
   const [query, setQuery] = useState("");
+  const [view, setView] = useState<SponsorView>("free");
   const sold = useMemo(
     () => positions.filter((spot) => spot.status === "sold"),
     [positions],
   );
+  const free = useMemo(
+    () => positions.filter((spot) => spot.status === "available"),
+    [positions],
+  );
   const accounts = useMemo(() => formatReceivedBookkeeping(positions), [positions]);
   const visible = useMemo(() => {
+    const pool =
+      view === "free"
+        ? positions.filter((spot) => spot.status === "available")
+        : view === "sold"
+          ? positions.filter((spot) => spot.status !== "available")
+          : positions;
     const needle = query.trim().toLowerCase();
-    if (!needle) return positions;
+    if (!needle) return pool;
     const compact = needle.replace(/\s+/g, "");
-    return positions.filter((spot) => {
+    return pool.filter((spot) => {
       const members = groupedMemberIds(positions, spot.id);
       const hay = [
         padSpot(spot.id),
@@ -61,15 +77,17 @@ export function AdminSponsors({
         .toLowerCase();
       return hay.includes(needle) || spot.phone.replace(/\s+/g, "").includes(compact);
     });
-  }, [positions, query]);
+  }, [positions, query, view]);
 
   return (
     <section>
       <h2 className="text-xl font-medium">Patrocinadores</h2>
       <p className="mt-1 max-w-[62ch] text-sm text-muted-foreground">
-        Editá marca, correo y teléfono de cada posición. Liberar borra esos datos y deja el spot libre.
+        Los 21 del 17 de septiembre ya están. Los que vendiste después, cargalos acá: espacio,
+        marca y logo. Correo, teléfono y monto son opcionales.
         {missingEmail ? ` ${missingEmail} confirmados o reservados no tienen correo: no se les puede mandar el pack.` : ""}
       </p>
+      <AddSponsorForm positions={positions} onUpdate={onUpdate} />
       <div className="mt-3">
         <ReceivedAccountsCard accounts={accounts} />
         <p className="mt-2 text-sm text-muted-foreground">
@@ -80,20 +98,54 @@ export function AdminSponsors({
               : "Todavía no hay vendidos anotados."}
         </p>
       </div>
-      <div className="mt-4">
-        <Label htmlFor="sponsor-search">Buscar patrocinador</Label>
-        <Input
-          id="sponsor-search"
-          className="mt-1.5 max-w-md"
-          placeholder="nombre, correo, teléfono o número de espacio"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
+      <div className="mt-4 flex flex-wrap items-end gap-4">
+        <div className="min-w-[12rem]">
+          <p className="text-sm font-medium">Ver</p>
+          <div
+            role="group"
+            aria-label="Filtrar patrocinadores"
+            className="mt-1.5 flex overflow-hidden rounded-full border border-border bg-card"
+          >
+            {(
+              [
+                { id: "free", label: `Libres ${free.length}` },
+                { id: "sold", label: `Cargados ${sold.length}` },
+                { id: "all", label: "Todos" },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setView(option.id)}
+                aria-pressed={view === option.id}
+                className={`min-h-8 px-3 font-mono text-[10px] font-semibold tracking-[0.12em] ${
+                  view === option.id ? "bg-foreground text-background" : "text-muted-foreground"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="min-w-[16rem] flex-1">
+          <Label htmlFor="sponsor-search">Buscar patrocinador</Label>
+          <Input
+            id="sponsor-search"
+            className="mt-1.5 max-w-md"
+            placeholder="nombre, correo, teléfono o número de espacio"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">
         {visible.length === 0 ? (
           <p className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground md:col-span-2">
-            Nada coincide con “{query.trim()}”.
+            {query.trim()
+              ? `Nada coincide con “${query.trim()}”.`
+              : view === "free"
+                ? "No quedan espacios libres."
+                : "Nada que mostrar en este filtro."}
           </p>
         ) : (
           visible.map((spot) => (
@@ -110,6 +162,220 @@ export function AdminSponsors({
       </div>
     </section>
   );
+}
+
+function AddSponsorForm({
+  positions,
+  onUpdate,
+}: {
+  positions: LivePosition[];
+  onUpdate: (id: number, patch: Record<string, unknown>) => Promise<void>;
+}) {
+  const free = useMemo(
+    () => positions.filter((spot) => spot.status === "available").sort((a, b) => a.id - b.id),
+    [positions],
+  );
+  const [positionId, setPositionId] = useState(free[0]?.id ?? 0);
+  const [sponsor, setSponsor] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [logo, setLogo] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [replacing, setReplacing] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const selected = positions.find((spot) => spot.id === positionId) ?? free[0];
+  const spec = artworkSpec(selected?.size || "10 × 10");
+
+  useEffect(() => {
+    if (!free.some((spot) => spot.id === positionId)) {
+      setPositionId(free[0]?.id ?? 0);
+    }
+  }, [free, positionId]);
+
+  async function onPick(file: File | undefined) {
+    if (!file) return;
+    setError("");
+    setDone("");
+    const named = /\.(png|webp|svg|jpe?g)$/i.test(file.name);
+    const typed = ["image/png", "image/webp", "image/svg+xml", "image/jpeg", "image/jpg"].includes(
+      file.type,
+    );
+    if (!typed && !named) {
+      setError("Usá PNG, WebP, JPG o SVG.");
+      return;
+    }
+    if (file.size > ARTWORK_MAX_BYTES) {
+      setError("El archivo pesa más de 2 MB.");
+      return;
+    }
+    setReplacing(true);
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      const baked = await bakeLogoPlateCached(dataUrl, spec.cmW, spec.cmH).catch(() => null);
+      setLogo(baked?.src ?? dataUrl);
+    } catch {
+      setError("No se pudo leer el logo.");
+    } finally {
+      setReplacing(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  async function publish() {
+    setError("");
+    setDone("");
+    if (!selected || selected.status !== "available") {
+      setError("Elegí un espacio libre.");
+      return;
+    }
+    if (sponsor.trim().length < 2) {
+      setError("Ingresá el nombre de la marca.");
+      return;
+    }
+    if (!logo) {
+      setError("Subí el logo para que se vea en la maleta.");
+      return;
+    }
+    if (email.trim() && !isValidEmail(email)) {
+      setError("Ingresá un email válido o dejalo vacío.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await onUpdate(selected.id, {
+        status: "sold",
+        sponsor,
+        email,
+        phone,
+        logo,
+      });
+      setDone(`Publicado: ${padSpot(selected.id)} · ${sponsor.trim()}`);
+      setSponsor("");
+      setEmail("");
+      setPhone("");
+      setLogo("");
+    } catch (err) {
+      setError(mailErrorLabel(err instanceof Error ? err.message : "UPDATE_FAILED"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (free.length === 0) {
+    return (
+      <p className="mt-4 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+        No quedan espacios libres para cargar.
+      </p>
+    );
+  }
+
+  return (
+    <div className="mt-4 rounded-2xl border border-primary/40 bg-card p-4">
+      <p className="mono-label text-primary">cargar sponsor nuevo</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Un espacio libre, la marca y el logo. Queda confirmado en la maleta al publicar.
+      </p>
+      <div className="mt-4 grid gap-4 md:grid-cols-[auto_1fr]">
+        <div className="flex flex-col gap-2">
+          {logo ? (
+            <span className="flex h-24 w-24 overflow-hidden rounded-xl border border-border bg-white">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logo} alt="Logo a publicar" className="h-full w-full object-contain p-1.5" />
+            </span>
+          ) : (
+            <span className="flex h-24 w-24 items-center justify-center rounded-xl border border-dashed border-border bg-white px-2 text-center font-mono text-[10px] font-semibold tracking-[0.08em] text-muted-foreground">
+              {spec.sizeLabel}
+              <br />
+              {spec.pixelLabel}
+            </span>
+          )}
+          <input
+            ref={fileRef}
+            className="sr-only"
+            type="file"
+            accept={ARTWORK_ACCEPT}
+            disabled={replacing || busy}
+            onChange={(event) => void onPick(event.target.files?.[0])}
+          />
+          <button
+            type="button"
+            disabled={replacing || busy}
+            onClick={() => fileRef.current?.click()}
+            className={adminActionBtn}
+          >
+            {replacing ? "Leyendo…" : logo ? "Cambiar logo" : "Subir logo"}
+          </button>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="new-spot">Espacio libre</Label>
+            <select
+              id="new-spot"
+              className="h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              value={selected?.id ?? ""}
+              onChange={(event) => setPositionId(Number(event.target.value))}
+            >
+              {free.map((spot) => (
+                <option key={spot.id} value={spot.id}>
+                  {padSpot(spot.id)} · {faceLabel("es", spot.face)} · {spot.name} · ${spot.price}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1.5 sm:col-span-2">
+            <Label htmlFor="new-sponsor">Marca / nombre</Label>
+            <Input
+              id="new-sponsor"
+              value={sponsor}
+              onChange={(event) => setSponsor(event.target.value)}
+              placeholder="Como debe verse en la maleta"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-email">Correo (opcional)</Label>
+            <Input
+              id="new-email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-phone">WhatsApp (opcional)</Label>
+            <Input
+              id="new-phone"
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          className={`${adminActionBtn} bg-primary text-primary-foreground border-transparent`}
+          disabled={busy || replacing}
+          onClick={() => void publish()}
+        >
+          {busy ? "Publicando…" : "Publicar en la maleta"}
+        </button>
+        {done ? <p className="text-sm text-[#147a4b]">{done}</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("BAD_IMAGE"));
+    reader.readAsDataURL(file);
+  });
 }
 
 function SponsorCard({
@@ -177,6 +443,30 @@ function SponsorCard({
       await onUpdate(spot.id, { status, sponsor, email, phone });
     } catch (err) {
       setError(mailErrorLabel(err instanceof Error ? err.message : "UPDATE_FAILED"));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function publishSold() {
+    setError("");
+    if (sponsor.trim().length < 2) {
+      setError("Ingresá el nombre de la marca.");
+      return;
+    }
+    if (!spot.logo) {
+      setError("Subí el logo para que se vea en la maleta.");
+      return;
+    }
+    if (email.trim() && !isValidEmail(email)) {
+      setError("Ingresá un email válido o dejalo vacío.");
+      return;
+    }
+    setBusy(true);
+    try {
+      await onUpdate(spot.id, { status: "sold", sponsor, email, phone });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo publicar.");
     } finally {
       setBusy(false);
     }
@@ -410,6 +700,16 @@ function SponsorCard({
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
+        {spot.status === "available" ? (
+          <button
+            type="button"
+            className={`${adminActionBtn} bg-primary text-primary-foreground border-transparent`}
+            disabled={busy}
+            onClick={() => void publishSold()}
+          >
+            {busy ? "Publicando…" : "Publicar vendido"}
+          </button>
+        ) : null}
         <button type="button" className={adminActionBtn} disabled={busy} onClick={() => void save()}>
           {busy ? "Guardando…" : "Guardar"}
         </button>

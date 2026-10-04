@@ -41,6 +41,7 @@ yarn-error.log*
 /data/catalog.json
 /data/catalog.json.tmp
 /data/*-backup.json
+/data/blob-latest.json
 /public/uploads
 
 # local agent scratch

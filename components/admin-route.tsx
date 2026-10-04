@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { adminActionBtn, adminGhostBtn, mailErrorLabel } from "@/components/admin-ui";
+import type { GeocodeHit } from "@/lib/geocode";
 import {
+  MAX_VISITS,
   cityPresets,
   defaultSiteContent,
   emptyVisit,
   pickLocale,
+  visitFromGeocode,
   visitFromPreset,
   type Localized,
   type SiteContent,
@@ -75,28 +78,74 @@ export function AdminRoute({
   const presets = useMemo(() => cityPresets(), []);
   const [draft, setDraft] = useState<SiteContent>(initial);
   const [locale, setLocale] = useState<Locale>("es");
-  const [presetKey, setPresetKey] = useState(presets[0] ? `${presets[0].lat},${presets[0].lng}` : "custom");
+  const [presetKey, setPresetKey] = useState("custom");
+  const [query, setQuery] = useState("");
+  const [hits, setHits] = useState<GeocodeHit[]>([]);
+  const [searching, setSearching] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+
+  useEffect(() => {
+    if (!openId) return;
+    document.getElementById(`visit-row-${openId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [openId]);
 
   function setVisits(visits: SiteVisit[]) {
     setDraft((current) => ({ ...current, visits }));
     setOk("");
   }
 
+  function appendVisit(created: SiteVisit) {
+    const count = Array.isArray(draft.visits) ? draft.visits.length : 0;
+    if (count >= MAX_VISITS) {
+      setError(`Ya hay ${MAX_VISITS} ciudades, el máximo.`);
+      return;
+    }
+    setDraft((current) => {
+      const visits = Array.isArray(current.visits) ? current.visits : [];
+      if (visits.length >= MAX_VISITS) return current;
+      return { ...current, visits: [...visits, created] };
+    });
+    setOpenId(created.id);
+    setHits([]);
+    setError("");
+    setOk("Ciudad agregada abajo. Dale a Guardar ruta para publicarla.");
+  }
+
+  async function searchCities() {
+    const q = query.trim();
+    if (q.length < 2) {
+      setError("Escribí al menos 2 letras de la ciudad.");
+      return;
+    }
+    setError("");
+    setOk("");
+    setSearching(true);
+    try {
+      const response = await fetch(`/api/admin/geocode?q=${encodeURIComponent(q)}`, { cache: "no-store" });
+      const body = (await response.json().catch(() => ({}))) as { results?: GeocodeHit[]; error?: string };
+      if (!response.ok) throw new Error(body.error || "GEOCODE_FAILED");
+      const results = body.results ?? [];
+      setHits(results);
+      if (results.length === 0) {
+        setError("No encontré esa ciudad. Probá con el país, o agregala a mano y poné lat/lng.");
+      }
+    } catch (err) {
+      setError(mailErrorLabel(err instanceof Error ? err.message : "GEOCODE_FAILED"));
+    } finally {
+      setSearching(false);
+    }
+  }
+
   function addCity() {
     if (presetKey === "custom") {
-      const created = emptyVisit();
-      setVisits([...draft.visits, created]);
-      setOpenId(created.id);
+      appendVisit(emptyVisit());
       return;
     }
     const preset = presets.find((item) => `${item.lat},${item.lng}` === presetKey);
-    const created = preset ? visitFromPreset(preset) : emptyVisit();
-    setVisits([...draft.visits, created]);
-    setOpenId(created.id);
+    appendVisit(preset ? visitFromPreset(preset) : emptyVisit());
   }
 
   async function save() {
@@ -223,7 +272,7 @@ export function AdminRoute({
             id="outbound-hops"
             type="number"
             min={0}
-            max={40}
+            max={MAX_VISITS}
             value={draft.outboundHops}
             onChange={(event) => {
               const outboundHops = Number(event.target.value);
@@ -234,26 +283,73 @@ export function AdminRoute({
         </div>
       </div>
 
-      <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-end">
-        <div className="min-w-0 flex-1 space-y-1.5">
-          <Label htmlFor="preset-city">Agregar ciudad</Label>
-          <select
-            id="preset-city"
-            className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
-            value={presetKey}
-            onChange={(event) => setPresetKey(event.target.value)}
-          >
-            {presets.map((item) => (
-              <option key={`${item.lat},${item.lng}`} value={`${item.lat},${item.lng}`}>
-                {pickLocale("es", item.city)} · {pickLocale("es", item.region)}
-              </option>
-            ))}
-            <option value="custom">Otra ciudad (escribo el nombre)</option>
-          </select>
+      <div className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4">
+        <div>
+          <Label htmlFor="city-search">Agregar una ciudad nueva</Label>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Escribí el nombre, buscala y elegí el resultado. Eso le pone las coordenadas para el mapa.
+          </p>
         </div>
-        <button type="button" className={`${adminActionBtn} bg-foreground text-background`} onClick={addCity}>
-          Agregar
-        </button>
+        <form
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void searchCities();
+          }}
+        >
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Input
+              id="city-search"
+              value={query}
+              placeholder="Ej. Cancún, Barcelona, Tokyo"
+              onChange={(event) => setQuery(event.target.value)}
+            />
+          </div>
+          <button
+            type="submit"
+            className={`${adminActionBtn} bg-foreground text-background`}
+            disabled={searching}
+          >
+            {searching ? "Buscando…" : "Buscar"}
+          </button>
+        </form>
+        {hits.length > 0 ? (
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
+            {hits.map((hit) => (
+              <li key={`${hit.name}-${hit.lat}-${hit.lng}`}>
+                <button
+                  type="button"
+                  className="flex w-full flex-col items-start px-3 py-2.5 text-left hover:bg-muted/60"
+                  onClick={() => appendVisit(visitFromGeocode(hit))}
+                >
+                  <strong className="text-sm">{hit.name}</strong>
+                  <span className="text-[11px] text-muted-foreground">{hit.region || `${hit.lat}, ${hit.lng}`}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+        <div className="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1 space-y-1.5">
+            <Label htmlFor="preset-city">O copiá una de la ruta original</Label>
+            <select
+              id="preset-city"
+              className="h-9 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm"
+              value={presetKey}
+              onChange={(event) => setPresetKey(event.target.value)}
+            >
+              <option value="custom">Parada en blanco (yo pongo nombre y coords)</option>
+              {presets.map((item) => (
+                <option key={`${item.lat},${item.lng}`} value={`${item.lat},${item.lng}`}>
+                  {pickLocale("es", item.city)} · {pickLocale("es", item.region)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button type="button" className={adminGhostBtn} onClick={addCity}>
+            Agregar
+          </button>
+        </div>
       </div>
 
       <ol className="mt-4 space-y-2">
@@ -266,7 +362,11 @@ export function AdminRoute({
             const open = openId === visit.id;
             const cancelled = visit.status === "cancelled";
             return (
-              <li key={visit.id} className="rounded-2xl border border-border bg-card">
+              <li
+                id={`visit-row-${visit.id}`}
+                key={visit.id}
+                className={`rounded-2xl border bg-card ${openId === visit.id ? "border-primary" : "border-border"}`}
+              >
                 <div className="flex flex-wrap items-center gap-2 p-3">
                   <span className="font-mono text-[10px] font-semibold tracking-[0.12em] text-primary">
                     {padStop(index)}

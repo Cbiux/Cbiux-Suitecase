@@ -219,7 +219,8 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
           <p className="mono-label text-primary">admin</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Solicitudes</h1>
           <p className="mt-2 max-w-[52ch] text-sm text-muted-foreground">
-            Editá las ciudades del mapa, los textos de la home, patrocinadores y el correo de gracias.
+            En Patrocinadores cargás a mano los spots nuevos (marca + logo). También podés editar
+            ciudades, textos y el correo de gracias.
           </p>
           {data.catalogBackup && !data.catalogBackup.durable ? (
             <p className="mt-3 max-w-[62ch] text-sm text-destructive">
