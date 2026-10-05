@@ -1,6 +1,7 @@
 import { SITE } from "./config";
 
 export const REEL_DURATION = 17.6;
+export const SPONSOR_REEL_DURATION = 8.4;
 export const REEL_FPS = 30;
 
 export const REEL_FORMATS = [
@@ -18,23 +19,27 @@ export function reelFormat(id: ReelFormatId) {
 
 export function reelCaption(input: {
   sold: number;
-  available: number;
   brands: string[];
 }) {
   const brands = input.brands.slice(0, 12);
   const extra = input.brands.length - brands.length;
   const list = brands.join(", ") + (extra > 0 ? ` y ${extra} más` : "");
-  const leftover =
-    input.available > 0
-      ? `\nTodavía quedan ${input.available} espacio${input.available === 1 ? "" : "s"}.`
-      : "\nLa maleta ya está llena.";
-  return `${input.sold} marcas ya viajan en mi maleta de cabina rumbo a Compile Amsterdam, Lisboa y Devcon.
+  return `Gracias a las ${input.sold} marcas que apoyaron este viaje.
 
-Esto no es un banner digital. Es el carry-on que entra a salas, aeropuertos y hackathons.
+${list}.
 
-Gracias ${list}.${leftover}
+Su logo va conmigo, en físico, a Compile Amsterdam, Lisboa y Devcon. La maleta ya está llena por ustedes.
 
-cbiux-suitcase.vercel.app
+@${SITE.x}`;
+}
+
+export function sponsorReelCaption(brand: string) {
+  return `Gracias, ${brand}.
+
+Esta marca apoyó mi maleta de cabina. Su logo viaja conmigo, en físico, a Compile Amsterdam, Lisboa y Devcon.
+
+Etiquetálos. Este video es por ellos.
+
 @${SITE.x}`;
 }
 

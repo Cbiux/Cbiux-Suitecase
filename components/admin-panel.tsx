@@ -10,6 +10,7 @@ import { AdminThanksCard } from "./admin-thanks";
 import { AdminThanksMail } from "./admin-thanks-mail";
 import { ReelStudio } from "./reel-studio";
 import { CoordContacts } from "./coord-contacts";
+import { DownloadLogosButton } from "./download-logos-button";
 import { ThemeToggle } from "./theme-toggle";
 import { adminGhostBtn, formatWhen, ReceivedAccountsCard, Stat, StatusPill } from "./admin-ui";
 import { Button } from "@/components/ui/button";
@@ -353,14 +354,15 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
       ) : null}
 
       {tab === "art" ? (
-        <ArtSections artworkSpots={artworkSpots} updateSpot={updateSpot} />
+        <ArtSections artworkSpots={artworkSpots} positions={data.positions} updateSpot={updateSpot} />
       ) : null}
 
       {tab === "video" ? (
         <section className="mt-10 pb-8">
           <h2 className="text-xl font-medium">Video para redes</h2>
           <p className="mt-1 max-w-[62ch] text-sm text-muted-foreground">
-            Reel con las cuatro caras y los logos cargados. También está en{" "}
+            Agradecimiento por cada marca, o el de todas juntas. Sin QR de la página: el foco es el partner. También
+            está en{" "}
             <a href="/reel" className="text-primary underline-offset-2 hover:underline">
               /reel
             </a>
@@ -522,20 +524,27 @@ function Inbox({
 
 function ArtSections({
   artworkSpots,
+  positions,
   updateSpot,
 }: {
   artworkSpots: DisplayPlate[];
+  positions: LivePosition[];
   updateSpot: (id: number, patch: Record<string, unknown>) => Promise<void>;
 }) {
   const logoSpots = artworkSpots.filter((spot) => Boolean(spot.logo));
   return (
     <>
       <section className="mt-10">
-        <h2 className="text-xl font-medium">Logos y comprobantes</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Tocá <strong>Descargar logo</strong> para guardar el archivo, o <strong>Cambiar logo</strong> para
-          reemplazarlo. El recuadro indica el tamaño exacto.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-medium">Logos y comprobantes</h2>
+            <p className="mt-1 max-w-[62ch] text-sm text-muted-foreground">
+              Tocá <strong>Descargar logo</strong> para guardar uno, o bajá el ZIP con carpetas{" "}
+              <code>frente</code>, <code>atras</code>, <code>lado</code> y <code>contrario</code>.
+            </p>
+          </div>
+          <DownloadLogosButton positions={positions} />
+        </div>
         {artworkSpots.length === 0 ? (
           <p className="mt-4 rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
             Todavía no hay logos. Cuando alguien reserve y suba el diseño, aparece acá.

@@ -17,8 +17,8 @@ export default async function ReelPage() {
         Video de la maleta
       </h1>
       <p className="mt-4 max-w-[62ch] text-muted-foreground">
-        Un reel de ~18 s con las cuatro caras, los logos reales y un cierre con QR. Elegí el formato, generá y
-        subilo a Instagram, TikTok o LinkedIn. El preview ya corre con lo que está publicado.
+        Un reel por cada marca: el gracias, su logo y su espacio en el carry-on. No es para vender spots: es para
+        devolverles visibilidad. También está el video de todas juntas.
       </p>
       <div className="mt-8">
         <ReelStudio positions={inventory.positions} />
