@@ -26,7 +26,7 @@ export default async function Home() {
 
   return (
     <LanguageProvider initialSite={site}>
-      <CurrencyProvider>
+      <CurrencyProvider usdCrcRate={site.usdCrcRate}>
         <InventoryProvider initial={inventory}>
         <Header />
         <main id="main" className="pb-24 md:pb-0">

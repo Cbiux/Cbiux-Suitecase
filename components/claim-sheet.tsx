@@ -11,7 +11,6 @@ import { ARTWORK_ACCEPT, SITE } from "@/lib/config";
 import { artworkSpec, padSpot } from "@/lib/positions";
 import { plateContaining } from "@/lib/spot-groups";
 import { bakeLogoPlateCached } from "@/lib/logo-fit";
-import { formatMoney } from "@/lib/currency";
 import { phoneLooksValid } from "@/lib/phone";
 import type { LivePosition, PaymentNetwork, PaymentWallets } from "@/lib/types";
 import { useLanguage } from "./language-provider";
@@ -48,7 +47,7 @@ export function ClaimSheet() {
 
 function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boolean }) {
   const { dict, locale } = useLanguage();
-  const { format, currency } = useCurrency();
+  const { format, formatAs, currency } = useCurrency();
   const { refresh, data } = useInventory();
   const [step, setStep] = useState<Step>("detail");
   const [brandName, setBrandName] = useState("");
@@ -90,9 +89,9 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
   const shareText = useMemo(() => {
     const n = positionLabel;
     return locale === "es"
-      ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 34 spots · desde ${formatMoney(45, currency)} · USDC`
-      : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 34 spots · from ${formatMoney(45, currency)} · USDC`;
-  }, [positionLabel, brandName, locale, currency]);
+      ? `Acabo de poner el logo de ${brandName || "mi marca"} en la maleta de cabina de @${SITE.x} rumbo a Europa e India. Posición ${n}.\n\nCarry-on 55×40×20 · 34 spots · desde ${formatAs(45, currency)} · USDC`
+      : `Just put ${brandName || "our"} logo on @${SITE.x}'s carry-on cabin bag to Europe & India. Position ${n}.\n\nCabin 55×40×20 · 34 spots · from ${formatAs(45, currency)} · USDC`;
+  }, [positionLabel, brandName, locale, currency, formatAs]);
 
   const logoHint = fillCopy(dict.claim.logoSizeHint, {
     size: spec.sizeLabel,
@@ -355,7 +354,7 @@ function ClaimBody({ selected, mobile }: { selected: LivePosition; mobile: boole
           {format(selected.price)}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          {currency === "crc" ? `≈ $${selected.price} USD` : `≈ ${formatMoney(selected.price, "crc")}`}
+          {currency === "crc" ? `≈ $${selected.price} USD` : `≈ ${formatAs(selected.price, "crc")}`}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{dict.currency.rateNote}</p>
         <p className="mt-2 text-sm text-muted-foreground">

@@ -1,13 +1,15 @@
 "use client";
 
 import { createContext, useContext, useMemo, useSyncExternalStore } from "react";
-import { formatMoney } from "@/lib/currency";
+import { USD_CRC_RATE, formatMoney } from "@/lib/currency";
 import type { Currency } from "@/lib/types";
 
 type CurrencyContextValue = {
   currency: Currency;
   setCurrency: (currency: Currency) => void;
   format: (usd: number) => string;
+  formatAs: (usd: number, currency: Currency) => string;
+  usdCrcRate: number;
 };
 
 const CurrencyContext = createContext<CurrencyContextValue | null>(null);
@@ -31,7 +33,13 @@ function subscribe(callback: () => void) {
   };
 }
 
-export function CurrencyProvider({ children }: { children: React.ReactNode }) {
+export function CurrencyProvider({
+  children,
+  usdCrcRate = USD_CRC_RATE,
+}: {
+  children: React.ReactNode;
+  usdCrcRate?: number;
+}) {
   const currency = useSyncExternalStore(subscribe, readCurrency, () => "usd" as Currency);
 
   const setCurrency = (next: Currency) => {
@@ -46,9 +54,11 @@ export function CurrencyProvider({ children }: { children: React.ReactNode }) {
     () => ({
       currency,
       setCurrency,
-      format: (usd: number) => formatMoney(usd, currency),
+      format: (usd: number) => formatMoney(usd, currency, usdCrcRate),
+      formatAs: (usd: number, as: Currency) => formatMoney(usd, as, usdCrcRate),
+      usdCrcRate,
     }),
-    [currency],
+    [currency, usdCrcRate],
   );
 
   return <CurrencyContext.Provider value={value}>{children}</CurrencyContext.Provider>;

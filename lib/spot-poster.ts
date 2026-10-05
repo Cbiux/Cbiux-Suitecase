@@ -8,7 +8,7 @@ import {
   MUTED,
   NAVY,
   WHITE,
-  canvasToPng,
+  canvasToJpeg,
   drawCbiuxMark,
   drawContained,
   loadImage,
@@ -40,7 +40,7 @@ const FACE_LABEL: Record<Locale, Record<Face, string>> = {
 };
 
 export function spotFilename(sponsor: string, positionId: number) {
-  return `cbiux-espacio-${padSpot(positionId)}-${slugBrand(sponsor)}.png`;
+  return `cbiux-espacio-${padSpot(positionId)}-${slugBrand(sponsor)}.jpg`;
 }
 
 export function spotCaption(sponsor: string, positionId: number, locale: Locale = "es") {
@@ -143,8 +143,8 @@ export async function renderSpotPng(input: {
   ctx.textAlign = "right";
   ctx.fillText("cbiux-suitcase.vercel.app", 1008, 1288);
 
-  const blob = await canvasToPng(canvas);
-  if (!blob) throw new Error("PNG");
+  const blob = await canvasToJpeg(canvas);
+  if (!blob) throw new Error("JPEG");
   return blob;
 }
 

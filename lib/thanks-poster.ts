@@ -8,7 +8,7 @@ import {
   MUTED,
   NAVY,
   POSTER,
-  canvasToPng,
+  canvasToJpeg,
   drawCbiuxMark,
   drawContained,
   loadImage,
@@ -21,7 +21,7 @@ export const THANKS_POSTER = POSTER;
 export { thanksBrand };
 
 export function thanksFilename(sponsor: string, positionId: number) {
-  return `cbiux-gracias-${padSpot(positionId)}-${slugBrand(sponsor)}.png`;
+  return `cbiux-gracias-${padSpot(positionId)}-${slugBrand(sponsor)}.jpg`;
 }
 
 export function thanksCaption(sponsor: string, positionId: number, locale: Locale = "es") {
@@ -110,8 +110,8 @@ export async function renderThanksPng(input: {
   ctx.textAlign = "right";
   ctx.fillText("cbiux-suitcase.vercel.app", 1008, 1268);
 
-  const blob = await canvasToPng(canvas);
-  if (!blob) throw new Error("PNG");
+  const blob = await canvasToJpeg(canvas);
+  if (!blob) throw new Error("JPEG");
   return blob;
 }
 

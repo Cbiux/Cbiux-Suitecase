@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { ARTWORK_ACCEPT, ARTWORK_MAX_BYTES } from "@/lib/config";
 import { bakeLogoPlateCached } from "@/lib/logo-fit";
+import { logoJpegName } from "@/lib/logo-file";
 import { artworkSpec, getCatalogById, padSpot } from "@/lib/positions";
+import { srcToJpegBlob } from "@/lib/to-jpeg";
 import { mailErrorLabel } from "@/components/admin-ui";
 
 type Kind = "logo" | "comprobante";
@@ -223,6 +225,7 @@ export function AdminArtwork({
 }
 
 function downloadName(src: string, sponsor: string, positionId: number, kind: Kind) {
+  if (kind === "logo") return logoJpegName(sponsor, positionId);
   const mime = /^data:(image\/[a-z0-9.+-]+)/i.exec(src)?.[1]?.toLowerCase() ?? "";
   const ext = mime.includes("svg")
     ? "svg"
@@ -238,18 +241,31 @@ function downloadName(src: string, sponsor: string, positionId: number, kind: Ki
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "") || "logo";
-  const spot = padSpot(positionId);
-  return kind === "comprobante" ? `cbiux-${spot}-${brand}-comprobante.${ext}` : `cbiux-${spot}-${brand}.${ext}`;
+  return `cbiux-${padSpot(positionId)}-${brand}-comprobante.${ext}`;
 }
 
 async function downloadBlob(src: string, filename: string, apiHref: string) {
   let blob: Blob | null = null;
-  if (src.startsWith("data:")) {
+  if (filename.endsWith(".jpg")) {
+    try {
+      blob = await srcToJpegBlob(src);
+    } catch {
+      blob = null;
+    }
+  } else if (src.startsWith("data:")) {
     blob = await (await fetch(src)).blob();
   }
   if (!blob || !blob.size) {
     const response = await fetch(apiHref, { credentials: "same-origin" });
     if (response.ok) blob = await response.blob();
+  }
+  if (filename.endsWith(".jpg") && blob && blob.type !== "image/jpeg") {
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      blob = await srcToJpegBlob(objectUrl);
+    } finally {
+      URL.revokeObjectURL(objectUrl);
+    }
   }
   if (!blob || !blob.size) {
     throw new Error("EMPTY");

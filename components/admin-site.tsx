@@ -153,6 +153,8 @@ export function AdminSite({
         visits: latest.siteContent?.visits ?? draft.visits,
         outboundHops: latest.siteContent?.outboundHops ?? draft.outboundHops,
         route: latest.siteContent?.route ?? draft.route,
+        usdCrcRate: latest.siteContent?.usdCrcRate ?? draft.usdCrcRate,
+        reel: latest.siteContent?.reel ?? draft.reel,
       };
       const response = await fetch("/api/admin/content", {
         method: "POST",
@@ -189,6 +191,8 @@ export function AdminSite({
         visits: latest.siteContent?.visits ?? defaults.visits,
         outboundHops: latest.siteContent?.outboundHops ?? defaults.outboundHops,
         route: latest.siteContent?.route ?? defaults.route,
+        usdCrcRate: latest.siteContent?.usdCrcRate ?? draft.usdCrcRate,
+        reel: latest.siteContent?.reel ?? draft.reel,
       };
       const response = await fetch("/api/admin/content", {
         method: "POST",

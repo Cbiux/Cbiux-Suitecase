@@ -13,7 +13,14 @@ import {
 } from "./poster-kit";
 import { visiblePlates } from "./spot-groups";
 import type { Face, LivePosition } from "./types";
-import type { ReelFormat } from "./reel";
+import {
+  fillReel,
+  parseReelCopy,
+  reelRouteLine,
+  reelRuta,
+  type ReelCopy,
+  type ReelFormat,
+} from "./reel";
 
 export type LoadedPlate = {
   id: number;
@@ -328,7 +335,14 @@ function reveal(ctx: CanvasRenderingContext2D, alpha: number, t: number, at: num
   ctx.restore();
 }
 
-function drawHook(ctx: CanvasRenderingContext2D, t: number, assets: ReelAssets, format: ReelFormat, alpha: number) {
+function drawHook(
+  ctx: CanvasRenderingContext2D,
+  t: number,
+  assets: ReelAssets,
+  format: ReelFormat,
+  alpha: number,
+  copy: ReelCopy,
+) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
   const tall = format.id === "reels";
@@ -337,6 +351,7 @@ function drawHook(ctx: CanvasRenderingContext2D, t: number, assets: ReelAssets, 
   const titleSize = compact ? w * 0.11 : tall ? w * 0.13 : w * 0.11;
   const bodySize = compact ? w * 0.052 : tall ? w * 0.058 : w * 0.05;
   const titleY = compact ? h * 0.26 : h * 0.24;
+  const cities = copy.cities.map((item) => item.trim()).filter(Boolean);
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.textBaseline = "alphabetic";
@@ -344,41 +359,50 @@ function drawHook(ctx: CanvasRenderingContext2D, t: number, assets: ReelAssets, 
   reveal(ctx, alpha, t, 0.02, () => {
     ctx.fillStyle = BLUE;
     ctx.font = mono(700, w * 0.022);
-    ctx.fillText("GRACIAS", pad, titleY - titleSize * 0.55);
+    ctx.fillText(copy.kicker, pad, titleY - titleSize * 0.55);
   });
   reveal(ctx, alpha, t, 0.18, () => {
     ctx.fillStyle = NAVY;
     ctx.font = sans(650, titleSize);
-    ctx.fillText(`${count} marcas`, pad, titleY);
+    ctx.fillText(fillReel(copy.countLine, { n: count }), pad, titleY);
   });
   reveal(ctx, alpha, t, 0.42, () => {
     ctx.fillStyle = NAVY;
     ctx.font = sans(500, bodySize);
-    ctx.fillText("apoyaron este viaje.", pad, titleY + titleSize * 0.85);
+    ctx.fillText(copy.supported, pad, titleY + titleSize * 0.85);
   });
-  reveal(ctx, alpha, t, 0.62, () => {
-    ctx.fillStyle = MUTED;
-    ctx.font = sans(500, compact ? w * 0.036 : w * 0.038);
-    ctx.fillText("Van conmigo a", pad, titleY + titleSize * 0.85 + bodySize * 1.35);
-  });
-
-  const cities = ["Compile Amsterdam", "Lisboa", "Devcon India"];
-  const cityY0 = titleY + titleSize * 0.85 + bodySize * (compact ? 2.55 : 2.85);
-  cities.forEach((city, index) => {
-    reveal(ctx, alpha, t, 0.86 + index * 0.16, () => {
-      const y = cityY0 + index * bodySize * 1.55;
-      ctx.fillStyle = BLUE;
-      ctx.font = mono(700, w * 0.018);
-      ctx.fillText(String(index + 1).padStart(2, "0"), pad, y);
-      ctx.fillStyle = NAVY;
-      ctx.font = sans(650, compact ? w * 0.046 : w * 0.05);
-      ctx.fillText(city, pad + w * 0.09, y);
+  if (cities.length) {
+    reveal(ctx, alpha, t, 0.62, () => {
+      ctx.fillStyle = MUTED;
+      ctx.font = sans(500, compact ? w * 0.036 : w * 0.038);
+      ctx.fillText(copy.goingTo, pad, titleY + titleSize * 0.85 + bodySize * 1.35);
     });
-  });
+    const cityY0 = titleY + titleSize * 0.85 + bodySize * (compact ? 2.55 : 2.85);
+    cities.forEach((city, index) => {
+      reveal(ctx, alpha, t, 0.86 + index * 0.16, () => {
+        const y = cityY0 + index * bodySize * 1.55;
+        ctx.fillStyle = BLUE;
+        ctx.font = mono(700, w * 0.018);
+        ctx.fillText(String(index + 1).padStart(2, "0"), pad, y);
+        ctx.fillStyle = NAVY;
+        ctx.font = sans(650, compact ? w * 0.046 : w * 0.05);
+        ctx.fillText(city, pad + w * 0.09, y);
+      });
+    });
+  }
   ctx.restore();
 }
 
-function drawFace(ctx: CanvasRenderingContext2D, t: number, start: number, face: Face, assets: ReelAssets, format: ReelFormat, alpha: number) {
+function drawFace(
+  ctx: CanvasRenderingContext2D,
+  t: number,
+  start: number,
+  face: Face,
+  assets: ReelAssets,
+  format: ReelFormat,
+  alpha: number,
+  copy: ReelCopy,
+) {
   const { width: w, height: h } = format;
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -389,21 +413,29 @@ function drawFace(ctx: CanvasRenderingContext2D, t: number, start: number, face:
   ctx.fillText(FACE_META[face].label, w * 0.08, h * 0.12);
   ctx.fillStyle = NAVY;
   ctx.font = sans(650, w * 0.048);
-  ctx.fillText("Quiénes me apoyan.", w * 0.08, h * 0.175);
+  ctx.fillText(copy.faceTitle, w * 0.08, h * 0.175);
   const bagY = h * 0.2;
   const bagH = h * 0.68;
   drawSuitcase(ctx, assets, face, w * 0.08, bagY, w * 0.84, bagH, zoom);
   ctx.restore();
 }
 
-function drawMosaic(ctx: CanvasRenderingContext2D, t: number, start: number, assets: ReelAssets, format: ReelFormat, alpha: number) {
+function drawMosaic(
+  ctx: CanvasRenderingContext2D,
+  t: number,
+  start: number,
+  assets: ReelAssets,
+  format: ReelFormat,
+  alpha: number,
+  copy: ReelCopy,
+) {
   const { width: w, height: h } = format;
   const logos = assets.plates.filter((spot) => spot.image);
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.fillStyle = NAVY;
   ctx.font = sans(650, w * 0.05);
-  ctx.fillText("Gracias a cada una.", w * 0.08, h * 0.13);
+  ctx.fillText(copy.mosaicTitle, w * 0.08, h * 0.13);
   const cols = logos.length > 24 ? 6 : logos.length > 16 ? 5 : 4;
   const rows = Math.max(1, Math.ceil(logos.length / cols));
   const pad = w * 0.08;
@@ -435,7 +467,13 @@ function drawMosaic(ctx: CanvasRenderingContext2D, t: number, start: number, ass
   ctx.restore();
 }
 
-function drawCta(ctx: CanvasRenderingContext2D, assets: ReelAssets, format: ReelFormat, alpha: number) {
+function drawCta(
+  ctx: CanvasRenderingContext2D,
+  assets: ReelAssets,
+  format: ReelFormat,
+  alpha: number,
+  copy: ReelCopy,
+) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
   const compact = format.id === "square";
@@ -443,16 +481,16 @@ function drawCta(ctx: CanvasRenderingContext2D, assets: ReelAssets, format: Reel
   ctx.globalAlpha = alpha;
   ctx.fillStyle = BLUE;
   ctx.font = mono(700, w * 0.022);
-  ctx.fillText("GRACIAS", pad, h * (compact ? 0.22 : 0.2));
+  ctx.fillText(copy.kicker, pad, h * (compact ? 0.22 : 0.2));
   ctx.fillStyle = NAVY;
   ctx.font = sans(650, compact ? w * 0.08 : w * 0.09);
-  ctx.fillText("La maleta", pad, h * (compact ? 0.22 : 0.2) + w * 0.1);
+  ctx.fillText(copy.closeTitleA, pad, h * (compact ? 0.22 : 0.2) + w * 0.1);
   ctx.fillStyle = BLUE;
-  ctx.fillText("está llena.", pad, h * (compact ? 0.22 : 0.2) + w * 0.2);
+  ctx.fillText(copy.closeTitleB, pad, h * (compact ? 0.22 : 0.2) + w * 0.2);
   ctx.fillStyle = NAVY;
   const body = wrapLines(
     ctx,
-    "Por las marcas que apostaron por este viaje. Van conmigo a Amsterdam, Lisboa y Devcon.",
+    fillReel(copy.closeBody, { ruta: reelRuta(copy) }),
     w - pad * 2,
     sans(500, w * 0.034),
   );
@@ -510,6 +548,7 @@ function drawSponsorHook(
   spot: LoadedPlate,
   format: ReelFormat,
   alpha: number,
+  copy: ReelCopy,
 ) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
@@ -520,7 +559,7 @@ function drawSponsorHook(
   reveal(ctx, alpha, t, 0.02, () => {
     ctx.fillStyle = BLUE;
     ctx.font = mono(700, w * 0.022);
-    ctx.fillText("GRACIAS", pad, h * 0.16);
+    ctx.fillText(copy.kicker, pad, h * 0.16);
   });
   reveal(ctx, alpha, t, 0.18, () => {
     ctx.fillStyle = NAVY;
@@ -536,7 +575,7 @@ function drawSponsorHook(
     ctx.fillStyle = MUTED;
     ctx.font = sans(500, w * 0.032);
     ctx.textAlign = "center";
-    ctx.fillText("apoyó este viaje.", w / 2, compact ? h * 0.82 : h * 0.8);
+    ctx.fillText(copy.sponsorSupported, w / 2, compact ? h * 0.82 : h * 0.8);
     ctx.font = mono(700, w * 0.018);
     ctx.fillText(`${FACE_META[spot.face].label}  ·  ${padSpot(spot.id)}`, w / 2, compact ? h * 0.88 : h * 0.86);
     ctx.textAlign = "left";
@@ -552,6 +591,7 @@ function drawSponsorBag(
   assets: ReelAssets,
   format: ReelFormat,
   alpha: number,
+  copy: ReelCopy,
 ) {
   const { width: w, height: h } = format;
   ctx.save();
@@ -563,7 +603,7 @@ function drawSponsorBag(
   ctx.font = mono(700, w * 0.02);
   ctx.fillText(FACE_META[spot.face].label, w * 0.08, h * 0.12);
   ctx.fillStyle = NAVY;
-  const headline = `${spot.sponsor} va conmigo.`;
+  const headline = fillReel(copy.sponsorWithMe, { marca: spot.sponsor });
   const size = fitLine(ctx, headline, w * 0.84, w * 0.046, w * 0.028);
   ctx.font = sans(650, size);
   ctx.fillText(headline, w * 0.08, h * 0.175, w * 0.84);
@@ -579,6 +619,7 @@ function drawSponsorCta(
   spot: LoadedPlate,
   format: ReelFormat,
   alpha: number,
+  copy: ReelCopy,
 ) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
@@ -588,7 +629,7 @@ function drawSponsorCta(
   ctx.globalAlpha = alpha;
   ctx.fillStyle = BLUE;
   ctx.font = mono(700, w * 0.022);
-  ctx.fillText("GRACIAS", pad, h * 0.16);
+  ctx.fillText(copy.kicker, pad, h * 0.16);
   ctx.fillStyle = NAVY;
   const size = fitLine(ctx, spot.sponsor, w - pad * 2, compact ? w * 0.07 : w * 0.08, w * 0.038);
   ctx.font = sans(650, size);
@@ -601,7 +642,7 @@ function drawSponsorCta(
   ctx.textAlign = "center";
   const thanks = wrapLines(
     ctx,
-    "Gracias por apoyar este viaje.",
+    fillReel(copy.sponsorThanks, { marca: spot.sponsor, ruta: reelRuta(copy) }),
     w - pad * 2,
     sans(500, w * 0.032),
   );
@@ -611,7 +652,7 @@ function drawSponsorCta(
   });
   ctx.fillStyle = MUTED;
   ctx.font = mono(600, w * 0.018);
-  ctx.fillText("AMSTERDAM  ·  LISBOA  ·  DEVCON", w / 2, thanksY + thanks.length * w * 0.042 + w * 0.04);
+  ctx.fillText(reelRouteLine(copy), w / 2, thanksY + thanks.length * w * 0.042 + w * 0.04);
   ctx.textAlign = "left";
   ctx.restore();
 }
@@ -621,6 +662,7 @@ function drawGroupReel(
   t: number,
   assets: ReelAssets,
   format: ReelFormat,
+  copy: ReelCopy,
 ) {
   const hook = scene(t, 0, 2.65, 0.28);
   const front = scene(t, 2.55, 5.35);
@@ -629,14 +671,14 @@ function drawGroupReel(
   const left = scene(t, 10.05, 12.85);
   const mosaic = scene(t, 12.55, 15.3);
   const cta = scene(t, 15.0, 17.7);
-  if (hook) drawHook(ctx, t, assets, format, hook);
-  if (front) drawFace(ctx, t, 2.55, "front", assets, format, front);
-  if (back) drawFace(ctx, t, 5.05, "back", assets, format, back);
-  if (right) drawFace(ctx, t, 7.55, "right", assets, format, right);
-  if (left) drawFace(ctx, t, 10.05, "left", assets, format, left);
-  if (mosaic) drawMosaic(ctx, t, 12.55, assets, format, mosaic);
-  if (cta) drawCta(ctx, assets, format, cta);
-  chrome(ctx, format, "GRACIAS");
+  if (hook) drawHook(ctx, t, assets, format, hook, copy);
+  if (front) drawFace(ctx, t, 2.55, "front", assets, format, front, copy);
+  if (back) drawFace(ctx, t, 5.05, "back", assets, format, back, copy);
+  if (right) drawFace(ctx, t, 7.55, "right", assets, format, right, copy);
+  if (left) drawFace(ctx, t, 10.05, "left", assets, format, left, copy);
+  if (mosaic) drawMosaic(ctx, t, 12.55, assets, format, mosaic, copy);
+  if (cta) drawCta(ctx, assets, format, cta, copy);
+  chrome(ctx, format, copy.kicker);
   drawEndCredit(ctx, format, scene(t, 16.15, 17.7, 0.4));
 }
 
@@ -646,14 +688,15 @@ function drawSponsorReel(
   assets: ReelAssets,
   format: ReelFormat,
   spot: LoadedPlate,
+  copy: ReelCopy,
 ) {
   const hook = scene(t, 0, 2.45, 0.26);
   const bag = scene(t, 2.3, 5.75);
   const cta = scene(t, 5.55, 8.5);
-  if (hook) drawSponsorHook(ctx, t, spot, format, hook);
-  if (bag) drawSponsorBag(ctx, t, 2.3, spot, assets, format, bag);
-  if (cta) drawSponsorCta(ctx, spot, format, cta);
-  chrome(ctx, format, "GRACIAS");
+  if (hook) drawSponsorHook(ctx, t, spot, format, hook, copy);
+  if (bag) drawSponsorBag(ctx, t, 2.3, spot, assets, format, bag, copy);
+  if (cta) drawSponsorCta(ctx, spot, format, cta, copy);
+  chrome(ctx, format, copy.kicker);
   drawEndCredit(ctx, format, scene(t, 7.35, 8.5, 0.35));
 }
 
@@ -663,8 +706,10 @@ export function drawReelFrame(
   assets: ReelAssets,
   format: ReelFormat,
   focus?: LoadedPlate | null,
+  copyInput?: ReelCopy,
 ) {
+  const copy = parseReelCopy(copyInput);
   fillBase(ctx, format.width, format.height);
-  if (focus) drawSponsorReel(ctx, t, assets, format, focus);
-  else drawGroupReel(ctx, t, assets, format);
+  if (focus) drawSponsorReel(ctx, t, assets, format, focus, copy);
+  else drawGroupReel(ctx, t, assets, format, copy);
 }

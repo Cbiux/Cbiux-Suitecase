@@ -34,6 +34,12 @@ export function artworkFileMeta(
   };
 }
 
+export function logoJpegName(sponsor = "", positionId = 0) {
+  const brand = slugBrand(sponsor);
+  const spot = positionId ? padSpot(positionId) : "00";
+  return `cbiux-${spot}-${brand}.jpg`;
+}
+
 export function decodeArtwork(dataUrl: string) {
   const trimmed = dataUrl.trim();
   const utf = /^data:image\/svg\+xml(?:;charset=utf-8)?,(.*)$/i.exec(trimmed);

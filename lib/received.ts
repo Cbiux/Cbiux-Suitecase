@@ -84,12 +84,12 @@ export function summarizeReceived(spots: LivePosition[]) {
   };
 }
 
-export function formatReceivedBookkeeping(spots: LivePosition[]) {
+export function formatReceivedBookkeeping(spots: LivePosition[], rate = USD_CRC_RATE) {
   const summary = summarizeReceived(spots);
-  const cashUsdTotal = Math.round((summary.usd + crcToUsd(summary.crc)) * 100) / 100;
-  const cashCrcTotal = usdToCrcExact(summary.usd) + summary.crc;
-  const kindUsdTotal = Math.round((summary.inKindUsd + crcToUsd(summary.inKindCrc)) * 100) / 100;
-  const kindCrcTotal = usdToCrcExact(summary.inKindUsd) + summary.inKindCrc;
+  const cashUsdTotal = Math.round((summary.usd + crcToUsd(summary.crc, rate)) * 100) / 100;
+  const cashCrcTotal = usdToCrcExact(summary.usd, rate) + summary.crc;
+  const kindUsdTotal = Math.round((summary.inKindUsd + crcToUsd(summary.inKindCrc, rate)) * 100) / 100;
+  const kindCrcTotal = usdToCrcExact(summary.inKindUsd, rate) + summary.inKindCrc;
   const cash = `${formatReceivedMoney(cashUsdTotal, "usd")} · ${formatReceivedMoney(cashCrcTotal, "crc")}`;
   const recorded = `${formatReceivedMoney(summary.usd, "usd")} USD + ${formatReceivedMoney(summary.crc, "crc")} CRC`;
   const kindParts: string[] = [];
@@ -107,7 +107,7 @@ export function formatReceivedBookkeeping(spots: LivePosition[]) {
     cash,
     recorded,
     kind,
-    rateNote: `tipo ₡${USD_CRC_RATE} por USD`,
+    rateNote: `tipo ₡${rate} por USD`,
     line: cash,
   };
 }

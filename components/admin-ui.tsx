@@ -1,3 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { parseUsdCrcRate, USD_CRC_RATE_MAX, USD_CRC_RATE_MIN } from "@/lib/currency";
 import type { SpotStatus } from "@/lib/types";
 
 export function formatWhen(value: string) {
@@ -59,6 +65,78 @@ export function ReceivedAccountsCard({
           <span className="mt-0.5 block font-medium">{accounts.kind}</span>
         </p>
       ) : null}
+    </div>
+  );
+}
+
+export function UsdRateCard({
+  value,
+  onSave,
+  busy,
+}: {
+  value: number;
+  onSave: (rate: number) => Promise<void>;
+  busy?: boolean;
+}) {
+  const [draft, setDraft] = useState(String(value));
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+
+  useEffect(() => {
+    setDraft(String(value));
+  }, [value]);
+
+  async function save() {
+    const raw = Number(String(draft).trim().replace(",", "."));
+    if (!Number.isFinite(raw) || raw < USD_CRC_RATE_MIN || raw > USD_CRC_RATE_MAX) {
+      setOk("");
+      setError(`Poné un tipo entre ₡${USD_CRC_RATE_MIN} y ₡${USD_CRC_RATE_MAX}.`);
+      return;
+    }
+    const parsed = parseUsdCrcRate(raw);
+    setError("");
+    setOk("");
+    try {
+      await onSave(parsed);
+      setDraft(String(parsed));
+      setOk("Guardado. Recargá la página pública para ver los colones.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo guardar.");
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+      <Label htmlFor="usd-crc-rate" className="mono-label">
+        Tipo de cambio USD
+      </Label>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="text-sm text-muted-foreground">₡</span>
+        <Input
+          id="usd-crc-rate"
+          type="number"
+          min={USD_CRC_RATE_MIN}
+          max={USD_CRC_RATE_MAX}
+          step={1}
+          inputMode="decimal"
+          value={draft}
+          onChange={(event) => {
+            setDraft(event.target.value);
+            setOk("");
+            setError("");
+          }}
+          className="h-11 w-28"
+        />
+        <span className="text-sm text-muted-foreground">por 1 USD</span>
+        <button type="button" className={adminActionBtn} disabled={busy} onClick={() => void save()}>
+          {busy ? "Guardando…" : "Guardar"}
+        </button>
+      </div>
+      {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
+      {ok ? <p className="mt-2 text-xs text-[#147a4b]">{ok}</p> : null}
+      <p className="mt-2 text-xs text-muted-foreground">
+        Los precios de la web se muestran en colones con este tipo, redondeados a ₡500.
+      </p>
     </div>
   );
 }

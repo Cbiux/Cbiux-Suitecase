@@ -25,11 +25,13 @@ type SponsorView = "free" | "sold" | "all";
 
 export function AdminSponsors({
   positions,
+  usdCrcRate,
   onUpdate,
   onSend,
   sendingId,
 }: {
   positions: LivePosition[];
+  usdCrcRate: number;
   onUpdate: (id: number, patch: Record<string, unknown>) => Promise<void>;
   onSend: (spot: LivePosition) => Promise<void>;
   sendingId: number | null;
@@ -48,7 +50,10 @@ export function AdminSponsors({
     () => positions.filter((spot) => spot.status === "available"),
     [positions],
   );
-  const accounts = useMemo(() => formatReceivedBookkeeping(positions), [positions]);
+  const accounts = useMemo(
+    () => formatReceivedBookkeeping(positions, usdCrcRate),
+    [positions, usdCrcRate],
+  );
   const visible = useMemo(() => {
     const pool =
       view === "free"

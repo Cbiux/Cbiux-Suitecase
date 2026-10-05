@@ -1,4 +1,6 @@
 import { copy, t } from "./i18n";
+import { USD_CRC_RATE, currencyRateNote, parseUsdCrcRate } from "./currency";
+import { defaultReelCopy, parseReelCopy, type ReelCopy } from "./reel";
 import { OUTBOUND_HOPS, PLACES, ROUTE_VISITS } from "./trip-route";
 import type { Locale } from "./types";
 
@@ -29,6 +31,7 @@ export type SitePoint = {
 
 export type SiteContent = {
   version: 1;
+  usdCrcRate: number;
   banner: { enabled: boolean; text: Localized };
   meta: { title: Localized; description: Localized };
   nav: {
@@ -127,6 +130,7 @@ export type SiteContent = {
   };
   offer: { kicker: Localized; title: Localized; body: Localized };
   footer: { trip: Localized };
+  reel: ReelCopy;
 };
 
 function L(es: string, en: string): Localized {
@@ -142,6 +146,7 @@ export function defaultSiteContent(): SiteContent {
   const en = copy.en;
   return {
     version: 1,
+    usdCrcRate: USD_CRC_RATE,
     banner: { enabled: false, text: L("", "") },
     meta: {
       title: locFrom(es.metaTitle, en.metaTitle),
@@ -287,6 +292,7 @@ export function defaultSiteContent(): SiteContent {
     footer: {
       trip: locFrom(es.footer.trip, en.footer.trip),
     },
+    reel: defaultReelCopy(),
   };
 }
 
@@ -394,6 +400,7 @@ export function parseSiteContent(raw: unknown): SiteContent {
   const visitsRaw = Array.isArray(doc.visits) ? doc.visits : null;
   return {
     version: 1,
+    usdCrcRate: parseUsdCrcRate(doc.usdCrcRate, base.usdCrcRate),
     banner: {
       enabled: Boolean(
         doc.banner && typeof doc.banner === "object"
@@ -747,6 +754,7 @@ export function parseSiteContent(raw: unknown): SiteContent {
         80,
       ),
     },
+    reel: parseReelCopy(doc.reel),
   };
 }
 
@@ -850,6 +858,7 @@ export function applySiteToDict(locale: Locale, site: SiteContent): ReturnType<t
   dict.offer.title = Lx(site.offer.title) || dict.offer.title;
   dict.offer.body = Lx(site.offer.body) || dict.offer.body;
   dict.footer.trip = Lx(site.footer.trip) || dict.footer.trip;
+  dict.currency.rateNote = currencyRateNote(site.usdCrcRate, locale);
   return dict as ReturnType<typeof t>;
 }
 

@@ -116,6 +116,12 @@ export function canvasToPng(canvas: HTMLCanvasElement) {
   });
 }
 
+export function canvasToJpeg(canvas: HTMLCanvasElement, quality = 0.92) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", quality);
+  });
+}
+
 export function makePosterCanvas() {
   const canvas = document.createElement("canvas");
   canvas.width = POSTER.width;

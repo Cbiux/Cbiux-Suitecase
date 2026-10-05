@@ -1,5 +1,5 @@
 import { ReelStudio } from "@/components/reel-studio";
-import { getInventory } from "@/lib/store";
+import { getInventory, getSiteContent } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export const metadata = {
 };
 
 export default async function ReelPage() {
-  const inventory = await getInventory("es");
+  const [inventory, site] = await Promise.all([getInventory("es"), getSiteContent()]);
   return (
     <main className="shell py-10">
       <p className="mono-label text-primary">video · partners</p>
@@ -21,7 +21,7 @@ export default async function ReelPage() {
         devolverles visibilidad. También está el video de todas juntas.
       </p>
       <div className="mt-8">
-        <ReelStudio positions={inventory.positions} />
+        <ReelStudio positions={inventory.positions} initialCopy={site.reel} />
       </div>
     </main>
   );

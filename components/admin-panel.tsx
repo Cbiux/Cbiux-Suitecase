@@ -12,7 +12,15 @@ import { ReelStudio } from "./reel-studio";
 import { CoordContacts } from "./coord-contacts";
 import { DownloadLogosButton } from "./download-logos-button";
 import { ThemeToggle } from "./theme-toggle";
-import { adminGhostBtn, formatWhen, ReceivedAccountsCard, Stat, StatusPill } from "./admin-ui";
+import {
+  adminGhostBtn,
+  formatWhen,
+  mailErrorLabel,
+  ReceivedAccountsCard,
+  Stat,
+  StatusPill,
+  UsdRateCard,
+} from "./admin-ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -102,6 +110,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
   const [restoreMsg, setRestoreMsg] = useState("");
   const [restoreBusy, setRestoreBusy] = useState(false);
   const [sendingId, setSendingId] = useState<number | null>(null);
+  const [rateBusy, setRateBusy] = useState(false);
 
   const pendingSpots = useMemo(
     () => data.positions.filter((spot) => spot.status === "reserved"),
@@ -121,8 +130,8 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
   );
   const mailsSent = data.positions.filter((spot) => Boolean(spot.thanksEmailSentAt)).length;
   const accounts = useMemo(
-    () => formatReceivedBookkeeping(data.positions),
-    [data.positions],
+    () => formatReceivedBookkeeping(data.positions, data.siteContent.usdCrcRate),
+    [data.positions, data.siteContent.usdCrcRate],
   );
 
   async function load() {
@@ -134,6 +143,29 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
       ...json,
       siteContent: json.siteContent ?? current.siteContent,
     }));
+  }
+
+  async function saveUsdCrcRate(usdCrcRate: number) {
+    setRateBusy(true);
+    try {
+      const response = await fetch("/api/admin/content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: { usdCrcRate } }),
+      });
+      const body = (await response.json().catch(() => ({}))) as {
+        error?: string;
+        siteContent?: SiteContent;
+      };
+      if (!response.ok) throw new Error(mailErrorLabel(body.error || "UPDATE_FAILED"));
+      if (body.siteContent) {
+        setData((current) => ({ ...current, siteContent: body.siteContent! }));
+      } else {
+        await load();
+      }
+    } finally {
+      setRateBusy(false);
+    }
   }
 
   async function updateSpot(positionId: number, patch: Record<string, unknown>) {
@@ -279,8 +311,9 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
           <Stat label="Vendidas" value={String(sold.length)} />
           <Stat label="Sin anotar" value={String(accounts.missing)} />
           <Stat label="Correos enviados" value={String(mailsSent)} />
-          <div className="col-span-2 md:col-span-4">
+          <div className="col-span-2 md:col-span-4 grid gap-2 md:grid-cols-2">
             <ReceivedAccountsCard accounts={accounts} />
+            <UsdRateCard value={data.siteContent.usdCrcRate} onSave={saveUsdCrcRate} busy={rateBusy} />
           </div>
         </div>
       ) : (
@@ -288,8 +321,9 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
           <Stat label="Vendidas" value={String(sold.length)} />
           <Stat label="Sin anotar" value={String(accounts.missing)} />
           <Stat label="Correos enviados" value={String(mailsSent)} />
-          <div className="col-span-2 md:col-span-4">
+          <div className="col-span-2 md:col-span-4 grid gap-2 md:grid-cols-2">
             <ReceivedAccountsCard accounts={accounts} />
+            <UsdRateCard value={data.siteContent.usdCrcRate} onSave={saveUsdCrcRate} busy={rateBusy} />
           </div>
         </div>
       )}
@@ -311,6 +345,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
         <div className="mt-10">
           <AdminSponsors
             positions={data.positions}
+            usdCrcRate={data.siteContent.usdCrcRate}
             onUpdate={updateSpot}
             onSend={(spot) => sendOne(spot)}
             sendingId={sendingId}
@@ -369,7 +404,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
             .
           </p>
           <div className="mt-6">
-            <ReelStudio positions={data.positions} />
+            <ReelStudio positions={data.positions} initialCopy={data.siteContent?.reel} />
           </div>
         </section>
       ) : null}
