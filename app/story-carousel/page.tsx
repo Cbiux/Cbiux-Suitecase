@@ -16,7 +16,12 @@ export default function StoryCarouselPage() {
       </h1>
       <p className="mt-4 max-w-[62ch] text-muted-foreground">
         Siete láminas 1080×1350: estudiante de CR, Compile / HackMeridian / Devcon, y pedir ayuda para abrir esa
-        puerta a más estudiantes. Descargalas en orden, subí el álbum y pegá el texto abajo.
+        puerta a más estudiantes. Descargalas en orden, subí el álbum y pegá el texto abajo. El video de la maleta
+        con los partners está en{" "}
+        <a href="/reel" className="text-primary underline-offset-2 hover:underline">
+          /reel
+        </a>
+        .
       </p>
       <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {STORY_SLIDES.map((slide) => (

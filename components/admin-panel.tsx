@@ -8,6 +8,7 @@ import { AdminSite } from "./admin-site";
 import { AdminSponsors } from "./admin-sponsors";
 import { AdminThanksCard } from "./admin-thanks";
 import { AdminThanksMail } from "./admin-thanks-mail";
+import { ReelStudio } from "./reel-studio";
 import { CoordContacts } from "./coord-contacts";
 import { ThemeToggle } from "./theme-toggle";
 import { adminGhostBtn, formatWhen, ReceivedAccountsCard, Stat, StatusPill } from "./admin-ui";
@@ -40,7 +41,7 @@ type AdminData = {
   };
 };
 
-type AdminTab = "inbox" | "sponsors" | "merge" | "route" | "site" | "mail" | "art";
+type AdminTab = "inbox" | "sponsors" | "merge" | "route" | "site" | "mail" | "art" | "video";
 
 export function AdminLogin() {
   const [password, setPassword] = useState("");
@@ -210,6 +211,7 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
     { id: "site", label: "Textos" },
     { id: "mail", label: "Correo" },
     { id: "art", label: "Arte" },
+    { id: "video", label: "Video" },
   ];
 
   return (
@@ -352,6 +354,22 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
 
       {tab === "art" ? (
         <ArtSections artworkSpots={artworkSpots} updateSpot={updateSpot} />
+      ) : null}
+
+      {tab === "video" ? (
+        <section className="mt-10 pb-8">
+          <h2 className="text-xl font-medium">Video para redes</h2>
+          <p className="mt-1 max-w-[62ch] text-sm text-muted-foreground">
+            Reel con las cuatro caras y los logos cargados. También está en{" "}
+            <a href="/reel" className="text-primary underline-offset-2 hover:underline">
+              /reel
+            </a>
+            .
+          </p>
+          <div className="mt-6">
+            <ReelStudio positions={data.positions} />
+          </div>
+        </section>
       ) : null}
     </main>
   );

@@ -30,6 +30,12 @@ export function ShareSupport() {
         <AnimatedLetters text={dict.share.title} />
       </h2>
       <p className="mt-4 max-w-[62ch] text-muted-foreground">{dict.share.intro}</p>
+      <p className="mt-3 max-w-[62ch] text-sm text-muted-foreground">
+        <a href="/reel" className="font-medium text-primary underline-offset-2 hover:underline">
+          Generar video de la maleta
+        </a>
+        {" · "}reel 9:16 con todos los logos, listo para Instagram o TikTok.
+      </p>
       <div className="mt-10 space-y-8">
         {spots.map((spot) => {
           const brand = thanksBrand(spot.sponsor, spot.name);
