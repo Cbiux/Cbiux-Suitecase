@@ -396,8 +396,8 @@ export function AdminBoard({ initial }: { initial: AdminData }) {
         <section className="mt-10 pb-8">
           <h2 className="text-xl font-medium">Video para redes</h2>
           <p className="mt-1 max-w-[62ch] text-sm text-muted-foreground">
-            Agradecimiento por cada marca, o el de todas juntas. Sin QR de la página: el foco es el partner. También
-            está en{" "}
+            Agradecimiento por cada marca, o el de todas juntas, en español o inglés y con música. Sin QR de la
+            página: el foco es el partner. También está en{" "}
             <a href="/reel" className="text-primary underline-offset-2 hover:underline">
               /reel
             </a>

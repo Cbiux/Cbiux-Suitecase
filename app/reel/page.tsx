@@ -17,8 +17,8 @@ export default async function ReelPage() {
         Video de la maleta
       </h1>
       <p className="mt-4 max-w-[62ch] text-muted-foreground">
-        Un reel por cada marca: el gracias, su logo y su espacio en el carry-on. No es para vender spots: es para
-        devolverles visibilidad. También está el video de todas juntas.
+        Un reel por cada marca: el gracias, su logo y su espacio en el carry-on. En español o en inglés, con música
+        incluida. No es para vender spots: es para devolverles visibilidad. También está el video de todas juntas.
       </p>
       <div className="mt-8">
         <ReelStudio positions={inventory.positions} initialCopy={site.reel} />

@@ -12,9 +12,12 @@ import {
   REEL_DURATION,
   REEL_FORMATS,
   REEL_FPS,
+  REEL_LANG_KEY,
+  REEL_MUSIC_KEY,
   SPONSOR_REEL_DURATION,
   defaultReelCopy,
   parseReelCopy,
+  parseReelPack,
   pickRecorderMime,
   recorderExtension,
   reelCaption,
@@ -22,7 +25,10 @@ import {
   sponsorReelCaption,
   type ReelCopy,
   type ReelFormatId,
+  type ReelLocale,
+  type ReelPack,
 } from "@/lib/reel";
+import { startReelMusic } from "@/lib/reel-music";
 import {
   drawReelFrame,
   groupReelDuration,
@@ -39,6 +45,8 @@ type Clip = { url: string; name: string; brand: string; caption: string };
 const TIPS = [
   "El video es un agradecimiento a esa marca, no una promo de la maleta. Etiquetálos al subir.",
   "Empieza con su logo. Después se ve su espacio real en el carry-on.",
+  "Generá una versión en español y otra en inglés con el mismo botón, cambiando el idioma.",
+  "La música queda mezclada en el archivo. Apagala si lo vas a sonorizar en CapCut.",
   "Generar todos tarda unos 8 segundos por partner. No cierres la pestaña.",
   "Si el archivo sale .webm, abrilo en CapCut y exportá MP4.",
 ];
@@ -46,15 +54,49 @@ const TIPS = [
 const FIELD =
   "min-h-11 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 dark:bg-input/30";
 
-function readStoredCopy(fallback?: ReelCopy) {
-  if (typeof window === "undefined") return parseReelCopy(fallback);
+const PILL =
+  "rounded-full px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em]";
+
+function persistPack(pack: ReelPack) {
   try {
-    const raw = window.localStorage.getItem(REEL_COPY_KEY);
-    if (raw) return parseReelCopy(JSON.parse(raw));
+    window.localStorage.setItem(REEL_COPY_KEY, JSON.stringify(pack));
   } catch {
     /* ignore */
   }
-  return parseReelCopy(fallback);
+}
+
+function readStoredPack(fallback?: ReelPack | ReelCopy) {
+  if (typeof window === "undefined") return parseReelPack(fallback);
+  try {
+    const raw = window.localStorage.getItem(REEL_COPY_KEY);
+    if (raw) return parseReelPack(JSON.parse(raw));
+  } catch {
+    /* ignore */
+  }
+  return parseReelPack(fallback);
+}
+
+function readStoredLocale(): ReelLocale {
+  if (typeof window === "undefined") return "es";
+  try {
+    const raw = window.localStorage.getItem(REEL_LANG_KEY);
+    if (raw === "en" || raw === "es") return raw;
+  } catch {
+    /* ignore */
+  }
+  return "es";
+}
+
+function readStoredMusic() {
+  if (typeof window === "undefined") return true;
+  try {
+    const raw = window.localStorage.getItem(REEL_MUSIC_KEY);
+    if (raw === "0") return false;
+    if (raw === "1") return true;
+  } catch {
+    /* ignore */
+  }
+  return true;
 }
 
 function ReelTextField({
@@ -85,8 +127,8 @@ function ReelTextField({
   );
 }
 
-function clipName(spot: LoadedPlate, ext: string) {
-  return `cbiux-gracias-${padSpot(spot.id)}-${slugBrand(spot.sponsor)}.${ext}`;
+function clipName(spot: LoadedPlate, ext: string, locale: ReelLocale) {
+  return `cbiux-gracias-${padSpot(spot.id)}-${slugBrand(spot.sponsor)}-${locale}.${ext}`;
 }
 
 function saveFile(url: string, name: string) {
@@ -101,13 +143,15 @@ export function ReelStudio({
   initialCopy,
 }: {
   positions: LivePosition[];
-  initialCopy?: ReelCopy;
+  initialCopy?: ReelPack | ReelCopy;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
   const [formatId, setFormatId] = useState<ReelFormatId>("reels");
   const [mode, setMode] = useState<Mode>("sponsor");
-  const [copy, setCopy] = useState<ReelCopy>(() => parseReelCopy(initialCopy));
+  const [locale, setLocale] = useState<ReelLocale>("es");
+  const [musicOn, setMusicOn] = useState(true);
+  const [pack, setPack] = useState<ReelPack>(() => parseReelPack(initialCopy));
   const [saveLabel, setSaveLabel] = useState("");
   const [assets, setAssets] = useState<ReelAssets | null>(null);
   const [focusId, setFocusId] = useState<number | null>(null);
@@ -116,7 +160,9 @@ export function ReelStudio({
   const [batchLabel, setBatchLabel] = useState("");
   const [clips, setClips] = useState<Clip[]>([]);
   const [copied, setCopied] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
   const format = reelFormat(formatId);
+  const copy = pack[locale];
   const sponsors = assets ? sponsorPlates(assets) : [];
   const focus = mode === "sponsor" ? (sponsors.find((spot) => spot.id === focusId) ?? sponsors[0] ?? null) : null;
   const duration = focus
@@ -126,48 +172,67 @@ export function ReelStudio({
       : REEL_DURATION;
 
   const caption = useMemo(() => {
-    if (focus) return sponsorReelCaption(focus.sponsor, copy);
+    if (focus) return sponsorReelCaption(focus.sponsor, copy, locale);
     return reelCaption(
       {
         sold: assets?.sold ?? positions.filter((spot) => spot.status === "sold").length,
         brands: assets?.brands ?? [],
       },
       copy,
+      locale,
     );
-  }, [assets, copy, focus, positions]);
+  }, [assets, copy, focus, locale, positions]);
 
   useEffect(() => {
-    setCopy(readStoredCopy(initialCopy));
+    setPack(readStoredPack(initialCopy));
+    setLocale(readStoredLocale());
+    setMusicOn(readStoredMusic());
   }, [initialCopy]);
 
   function patchCopy(patch: Partial<ReelCopy>) {
-    setCopy((current) => {
-      const next = { ...current, ...patch };
-      try {
-        window.localStorage.setItem(REEL_COPY_KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
+    setPack((current) => {
+      const next = { ...current, [locale]: { ...current[locale], ...patch } };
+      persistPack(next);
       return next;
     });
     setSaveLabel("");
   }
 
-  async function saveCopy() {
-    setSaveLabel("");
-    const parsed = parseReelCopy(copy);
+  function selectLocale(next: ReelLocale) {
+    setLocale(next);
     try {
-      window.localStorage.setItem(REEL_COPY_KEY, JSON.stringify(parsed));
+      window.localStorage.setItem(REEL_LANG_KEY, next);
     } catch {
       /* ignore */
     }
+  }
+
+  function toggleMusic() {
+    setMusicOn((current) => {
+      const next = !current;
+      try {
+        window.localStorage.setItem(REEL_MUSIC_KEY, next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  async function saveCopy() {
+    setSaveLabel("");
+    const parsed = parseReelPack({
+      ...pack,
+      [locale]: parseReelCopy(pack[locale], locale),
+    });
+    persistPack(parsed);
     const response = await fetch("/api/admin/content", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content: { reel: parsed } }),
     });
     if (response.ok) {
-      setCopy(parsed);
+      setPack(parsed);
       setSaveLabel("Guardado.");
       return;
     }
@@ -207,13 +272,32 @@ export function ReelStudio({
     const start = performance.now();
     const tick = (now: number) => {
       const t = ((now - start) / 1000) % duration;
-      drawReelFrame(ctx, t, assets, format, focus, copy);
+      drawReelFrame(ctx, t, assets, format, focus, copy, locale);
       if (barRef.current) barRef.current.style.width = `${Math.round((t / duration) * 100)}%`;
       frame = window.requestAnimationFrame(tick);
     };
     frame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(frame);
-  }, [assets, copy, format, busy, focus, duration]);
+  }, [assets, copy, format, busy, focus, duration, locale]);
+
+  useEffect(() => {
+    if (!audioUnlocked || !musicOn || !assets || busy === "prep" || busy === "record" || busy === "batch") return;
+    let cancelled = false;
+    let stop: (() => Promise<void>) | undefined;
+    startReelMusic({ seconds: 180, hear: true, volume: 0.12 })
+      .then((score) => {
+        if (cancelled) {
+          void score.stop();
+          return;
+        }
+        stop = score.stop;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      void stop?.();
+    };
+  }, [audioUnlocked, musicOn, assets, busy]);
 
   useEffect(() => {
     return () => {
@@ -221,18 +305,35 @@ export function ReelStudio({
     };
   }, [clips]);
 
-  async function capture(draw: (t: number) => void, length: number) {
+  async function capture(draw: (t: number) => void, length: number, hear: boolean) {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) throw new Error("CANVAS");
-    const mime = pickRecorderMime();
-    if (!mime || typeof MediaRecorder === "undefined") throw new Error("RECORDER");
     canvas.width = format.width;
     canvas.height = format.height;
     draw(0);
-    const stream = canvas.captureStream(REEL_FPS);
+    const videoStream = canvas.captureStream(REEL_FPS);
+    let stopMusic = async () => {};
+    let mixed = false;
+    let stream: MediaStream = videoStream;
+    if (musicOn) {
+      try {
+        const score = await startReelMusic({ seconds: length + 0.45, hear, volume: 0.2 });
+        stream = new MediaStream([...videoStream.getVideoTracks(), score.track]);
+        stopMusic = score.stop;
+        mixed = true;
+      } catch {
+        stream = videoStream;
+      }
+    }
+    const mime = pickRecorderMime(mixed);
+    if (!mime || typeof MediaRecorder === "undefined") throw new Error("RECORDER");
     const chunks: BlobPart[] = [];
-    const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8_000_000 });
+    const recorder = new MediaRecorder(stream, {
+      mimeType: mime,
+      videoBitsPerSecond: 8_000_000,
+      ...(mixed ? { audioBitsPerSecond: 160_000 } : {}),
+    });
     recorder.ondataavailable = (event) => {
       if (event.data.size) chunks.push(event.data);
     };
@@ -258,8 +359,10 @@ export function ReelStudio({
     if (barRef.current) barRef.current.style.width = "100%";
     await new Promise((resolve) => window.setTimeout(resolve, 120));
     recorder.stop();
-    stream.getTracks().forEach((track) => track.stop());
     const blob = await done;
+    await stopMusic();
+    stream.getTracks().forEach((track) => track.stop());
+    videoStream.getTracks().forEach((track) => track.stop());
     return { blob, ext: recorderExtension(mime) };
   }
 
@@ -270,27 +373,29 @@ export function ReelStudio({
     try {
       const length = spot ? SPONSOR_REEL_DURATION : groupReelDuration(assets);
       const { blob, ext } = await capture(
-        (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy),
+        (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy, locale),
         length,
+        true,
       );
       const url = URL.createObjectURL(blob);
       const clip: Clip = spot
         ? {
             url,
-            name: clipName(spot, ext),
+            name: clipName(spot, ext, locale),
             brand: spot.sponsor,
-            caption: sponsorReelCaption(spot.sponsor, copy),
+            caption: sponsorReelCaption(spot.sponsor, copy, locale),
           }
         : {
             url,
-            name: `${format.file}.${ext}`,
-            brand: "Maleta completa",
+            name: `${format.file}-${locale}.${ext}`,
+            brand: locale === "en" ? "Full suitcase" : "Maleta completa",
             caption: reelCaption(
               {
                 sold: assets.sold,
                 brands: assets.brands,
               },
               copy,
+              locale,
             ),
           };
       setClips((current) => {
@@ -319,15 +424,16 @@ export function ReelStudio({
         setFocusId(spot.id);
         setBatchLabel(`${index + 1}/${sponsors.length} · ${spot.sponsor}`);
         const { blob, ext } = await capture(
-          (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy),
+          (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy, locale),
           SPONSOR_REEL_DURATION,
+          false,
         );
         const url = URL.createObjectURL(blob);
         const clip: Clip = {
           url,
-          name: clipName(spot, ext),
+          name: clipName(spot, ext, locale),
           brand: spot.sponsor,
-          caption: sponsorReelCaption(spot.sponsor, copy),
+          caption: sponsorReelCaption(spot.sponsor, copy, locale),
         };
         made.push(clip);
         saveFile(url, clip.name);
@@ -354,7 +460,10 @@ export function ReelStudio({
   const recording = busy === "record" || busy === "batch";
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]">
+    <div
+      className="grid gap-8 lg:grid-cols-[minmax(0,360px)_minmax(0,1fr)]"
+      onPointerDown={() => setAudioUnlocked(true)}
+    >
       <div>
         <div className="overflow-hidden rounded-[28px] border border-border bg-[#111] p-3">
           <canvas
@@ -373,7 +482,7 @@ export function ReelStudio({
               ? `Grabando ${batchLabel}`
               : busy === "record"
                 ? "Grabando el reel…"
-                : `${format.width}×${format.height} · ${duration.toFixed(0)} s`}
+                : `${format.width}×${format.height} · ${duration.toFixed(0)} s · ${locale.toUpperCase()}${musicOn ? " · música" : ""}`}
         </p>
       </div>
 
@@ -383,9 +492,7 @@ export function ReelStudio({
             type="button"
             disabled={recording}
             onClick={() => setMode("sponsor")}
-            className={`rounded-full px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] ${
-              mode === "sponsor" ? "bg-foreground text-background" : "border border-border bg-card"
-            }`}
+            className={`${PILL} ${mode === "sponsor" ? "bg-foreground text-background" : "border border-border bg-card"}`}
           >
             Por patrocinador
           </button>
@@ -393,11 +500,31 @@ export function ReelStudio({
             type="button"
             disabled={recording}
             onClick={() => setMode("group")}
-            className={`rounded-full px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] ${
-              mode === "group" ? "bg-foreground text-background" : "border border-border bg-card"
-            }`}
+            className={`${PILL} ${mode === "group" ? "bg-foreground text-background" : "border border-border bg-card"}`}
           >
             Maleta completa
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {(["es", "en"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              disabled={recording}
+              onClick={() => selectLocale(item)}
+              className={`${PILL} ${locale === item ? "bg-foreground text-background" : "border border-border bg-card"}`}
+            >
+              {item === "es" ? "Español" : "English"}
+            </button>
+          ))}
+          <button
+            type="button"
+            disabled={recording}
+            onClick={toggleMusic}
+            className={`${PILL} ${musicOn ? "bg-foreground text-background" : "border border-border bg-card"}`}
+          >
+            {musicOn ? "Con música" : "Sin música"}
           </button>
         </div>
 
@@ -408,9 +535,7 @@ export function ReelStudio({
               type="button"
               disabled={recording}
               onClick={() => setFormatId(item.id)}
-              className={`rounded-full px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.12em] ${
-                formatId === item.id ? "bg-foreground text-background" : "border border-border bg-card"
-              }`}
+              className={`${PILL} ${formatId === item.id ? "bg-foreground text-background" : "border border-border bg-card"}`}
             >
               {item.label}
             </button>
@@ -484,35 +609,39 @@ export function ReelStudio({
         {loadError ? <p className="font-mono text-xs text-destructive">{loadError}</p> : null}
 
         <section className="rounded-3xl border border-border bg-card p-5">
-          <p className="mono-label text-primary">textos del video</p>
+          <p className="mono-label text-primary">textos del video · {locale === "en" ? "english" : "español"}</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            El preview cambia al toque. Las ciudades salen en la maleta completa. {"{marca}"} es el partner,{" "}
-            {"{ruta}"} se arma con los destinos, {"{n}"} es el número de marcas.
+            El preview cambia al toque. Cada idioma tiene sus propios textos. Las ciudades salen en la maleta completa.{" "}
+            {"{marca}"} es el partner, {"{ruta}"} se arma con los destinos, {"{n}"} es el número de marcas.
           </p>
           <div className="mt-4 space-y-4">
             <ReelTextField
               id="reel-cities"
-              label="Destinos (uno por línea)"
+              label={locale === "en" ? "Destinations (one per line)" : "Destinos (uno por línea)"}
               value={copy.cities.join("\n")}
               onChange={(value) => patchCopy({ cities: value.split("\n").slice(0, 6) })}
               multiline
-              hint="Ya no incluye Compile Amsterdam. Podés poner Lisboa, Devcon, o lo que sí vas a hacer."
+              hint={
+                locale === "en"
+                  ? "Lisbon, Devcon, or whatever is actually happening."
+                  : "Ya no incluye Compile Amsterdam. Podés poner Lisboa, Devcon, o lo que sí vas a hacer."
+              }
             />
             <ReelTextField
               id="reel-going"
-              label="Antes de las ciudades"
+              label={locale === "en" ? "Before the cities" : "Antes de las ciudades"}
               value={copy.goingTo}
               onChange={(value) => patchCopy({ goingTo: value })}
             />
             <ReelTextField
               id="reel-supported"
-              label="Después del número de marcas"
+              label={locale === "en" ? "After the brand count" : "Después del número de marcas"}
               value={copy.supported}
               onChange={(value) => patchCopy({ supported: value })}
             />
             <ReelTextField
               id="reel-count"
-              label="Línea del recuento"
+              label={locale === "en" ? "Count line" : "Línea del recuento"}
               value={copy.countLine}
               onChange={(value) => patchCopy({ countLine: value })}
               hint="Usá {n} para el número."
@@ -525,52 +654,52 @@ export function ReelStudio({
             />
             <ReelTextField
               id="reel-face"
-              label="Al mostrar cada cara"
+              label={locale === "en" ? "When showing each face" : "Al mostrar cada cara"}
               value={copy.faceTitle}
               onChange={(value) => patchCopy({ faceTitle: value })}
             />
             <ReelTextField
               id="reel-mosaic"
-              label="Mosaico de logos"
+              label={locale === "en" ? "Logo mosaic" : "Mosaico de logos"}
               value={copy.mosaicTitle}
               onChange={(value) => patchCopy({ mosaicTitle: value })}
             />
             <div className="grid gap-4 sm:grid-cols-2">
               <ReelTextField
                 id="reel-close-a"
-                label="Cierre, línea 1"
+                label={locale === "en" ? "Close, line 1" : "Cierre, línea 1"}
                 value={copy.closeTitleA}
                 onChange={(value) => patchCopy({ closeTitleA: value })}
               />
               <ReelTextField
                 id="reel-close-b"
-                label="Cierre, línea 2"
+                label={locale === "en" ? "Close, line 2" : "Cierre, línea 2"}
                 value={copy.closeTitleB}
                 onChange={(value) => patchCopy({ closeTitleB: value })}
               />
             </div>
             <ReelTextField
               id="reel-close-body"
-              label="Cierre, texto"
+              label={locale === "en" ? "Close, body" : "Cierre, texto"}
               value={copy.closeBody}
               onChange={(value) => patchCopy({ closeBody: value })}
               multiline
             />
             <ReelTextField
               id="reel-sponsor-supported"
-              label="Por marca, debajo del logo"
+              label={locale === "en" ? "Per brand, under the logo" : "Por marca, debajo del logo"}
               value={copy.sponsorSupported}
               onChange={(value) => patchCopy({ sponsorSupported: value })}
             />
             <ReelTextField
               id="reel-sponsor-with"
-              label="Por marca, sobre la maleta"
+              label={locale === "en" ? "Per brand, on the suitcase" : "Por marca, sobre la maleta"}
               value={copy.sponsorWithMe}
               onChange={(value) => patchCopy({ sponsorWithMe: value })}
             />
             <ReelTextField
               id="reel-sponsor-thanks"
-              label="Por marca, cierre"
+              label={locale === "en" ? "Per brand, close" : "Por marca, cierre"}
               value={copy.sponsorThanks}
               onChange={(value) => patchCopy({ sponsorThanks: value })}
             />
@@ -584,13 +713,11 @@ export function ReelStudio({
               variant="outline"
               className="rounded-full"
               onClick={() => {
-                const next = defaultReelCopy();
-                setCopy(next);
-                try {
-                  window.localStorage.setItem(REEL_COPY_KEY, JSON.stringify(next));
-                } catch {
-                  /* ignore */
-                }
+                setPack((current) => {
+                  const next = { ...current, [locale]: defaultReelCopy(locale) };
+                  persistPack(next);
+                  return next;
+                });
                 setSaveLabel("");
               }}
             >

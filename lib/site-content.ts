@@ -1,6 +1,6 @@
 import { copy, t } from "./i18n";
 import { USD_CRC_RATE, currencyRateNote, parseUsdCrcRate } from "./currency";
-import { defaultReelCopy, parseReelCopy, type ReelCopy } from "./reel";
+import { defaultReelPack, parseReelPack, type ReelPack } from "./reel";
 import { OUTBOUND_HOPS, PLACES, ROUTE_VISITS } from "./trip-route";
 import type { Locale } from "./types";
 
@@ -130,7 +130,7 @@ export type SiteContent = {
   };
   offer: { kicker: Localized; title: Localized; body: Localized };
   footer: { trip: Localized };
-  reel: ReelCopy;
+  reel: ReelPack;
 };
 
 function L(es: string, en: string): Localized {
@@ -292,7 +292,7 @@ export function defaultSiteContent(): SiteContent {
     footer: {
       trip: locFrom(es.footer.trip, en.footer.trip),
     },
-    reel: defaultReelCopy(),
+    reel: defaultReelPack(),
   };
 }
 
@@ -754,7 +754,7 @@ export function parseSiteContent(raw: unknown): SiteContent {
         80,
       ),
     },
-    reel: parseReelCopy(doc.reel),
+    reel: parseReelPack(doc.reel),
   };
 }
 

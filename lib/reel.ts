@@ -4,6 +4,10 @@ export const REEL_DURATION = 17.6;
 export const SPONSOR_REEL_DURATION = 8.4;
 export const REEL_FPS = 30;
 export const REEL_COPY_KEY = "cbiux-reel-copy";
+export const REEL_LANG_KEY = "cbiux-reel-lang";
+export const REEL_MUSIC_KEY = "cbiux-reel-music";
+
+export type ReelLocale = "es" | "en";
 
 export const REEL_FORMATS = [
   { id: "reels", label: "Reels / TikTok 9:16", width: 1080, height: 1920, file: "cbiux-maleta-partners-9x16" },
@@ -30,11 +34,33 @@ export type ReelCopy = {
   sponsorThanks: string;
 };
 
+export type ReelPack = {
+  es: ReelCopy;
+  en: ReelCopy;
+};
+
 export function reelFormat(id: ReelFormatId) {
   return REEL_FORMATS.find((item) => item.id === id) ?? REEL_FORMATS[0];
 }
 
-export function defaultReelCopy(): ReelCopy {
+export function defaultReelCopy(locale: ReelLocale = "es"): ReelCopy {
+  if (locale === "en") {
+    return {
+      kicker: "THANK YOU",
+      countLine: "{n} brands",
+      supported: "backed this trip.",
+      goingTo: "They come with me to",
+      cities: ["Lisbon", "Devcon India"],
+      faceTitle: "Who is backing me.",
+      mosaicTitle: "Thank you to every brand.",
+      closeTitleA: "The suitcase",
+      closeTitleB: "is full.",
+      closeBody: "For the brands that bet on this trip. They come with me to {ruta}.",
+      sponsorSupported: "backed this trip.",
+      sponsorWithMe: "{marca} travels with me.",
+      sponsorThanks: "Thank you for backing this trip.",
+    };
+  }
   return {
     kicker: "GRACIAS",
     countLine: "{n} marcas",
@@ -52,12 +78,16 @@ export function defaultReelCopy(): ReelCopy {
   };
 }
 
+export function defaultReelPack(): ReelPack {
+  return { es: defaultReelCopy("es"), en: defaultReelCopy("en") };
+}
+
 function clip(value: unknown, max: number) {
   return String(value ?? "").trim().slice(0, max);
 }
 
-export function parseReelCopy(raw: unknown): ReelCopy {
-  const base = defaultReelCopy();
+export function parseReelCopy(raw: unknown, locale: ReelLocale = "es"): ReelCopy {
+  const base = defaultReelCopy(locale);
   if (!raw || typeof raw !== "object") return base;
   const doc = raw as Record<string, unknown>;
   const cities = Array.isArray(doc.cities)
@@ -84,6 +114,22 @@ export function parseReelCopy(raw: unknown): ReelCopy {
   };
 }
 
+export function parseReelPack(raw: unknown): ReelPack {
+  const base = defaultReelPack();
+  if (!raw || typeof raw !== "object") return base;
+  const doc = raw as Record<string, unknown>;
+  if (doc.es || doc.en) {
+    return {
+      es: parseReelCopy(doc.es, "es"),
+      en: parseReelCopy(doc.en, "en"),
+    };
+  }
+  return {
+    es: parseReelCopy(doc, "es"),
+    en: base.en,
+  };
+}
+
 export function fillReel(template: string, vars: { n?: string | number; marca?: string; ruta?: string }) {
   return template
     .replaceAll("{n}", String(vars.n ?? ""))
@@ -91,10 +137,16 @@ export function fillReel(template: string, vars: { n?: string | number; marca?: 
     .replaceAll("{ruta}", vars.ruta ?? "");
 }
 
-export function reelRuta(copy: ReelCopy) {
+function joinList(items: string[], locale: ReelLocale) {
+  const and = locale === "en" ? " and " : " y ";
+  if (items.length <= 1) return items[0] || "";
+  if (items.length === 2) return `${items[0]}${and}${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}${and}${items[items.length - 1]}`;
+}
+
+export function reelRuta(copy: ReelCopy, locale: ReelLocale = "es") {
   const cities = copy.cities.map((item) => item.trim()).filter(Boolean);
-  if (cities.length <= 1) return cities[0] || "";
-  return `${cities.slice(0, -1).join(", ")} y ${cities[cities.length - 1]}`;
+  return joinList(cities, locale);
 }
 
 export function reelRouteLine(copy: ReelCopy) {
@@ -105,11 +157,25 @@ export function reelRouteLine(copy: ReelCopy) {
     .toUpperCase();
 }
 
-export function reelCaption(input: { sold: number; brands: string[] }, copy: ReelCopy = defaultReelCopy()) {
+export function reelCaption(
+  input: { sold: number; brands: string[] },
+  copy: ReelCopy = defaultReelCopy(),
+  locale: ReelLocale = "es",
+) {
   const brands = input.brands.slice(0, 12);
   const extra = input.brands.length - brands.length;
-  const list = brands.join(", ") + (extra > 0 ? ` y ${extra} más` : "");
-  const ruta = reelRuta(copy);
+  const extraLabel = extra > 0 ? (locale === "en" ? ` and ${extra} more` : ` y ${extra} más`) : "";
+  const list = brands.join(", ") + extraLabel;
+  const ruta = reelRuta(copy, locale);
+  if (locale === "en") {
+    return `Thank you to the ${input.sold} brands that backed this trip.
+
+${list}.
+
+Your logo travels with me, in physical form, to ${ruta}. The suitcase is full because of you.
+
+@${SITE.x}`;
+  }
   return `Gracias a las ${input.sold} marcas que apoyaron este viaje.
 
 ${list}.
@@ -119,8 +185,21 @@ Su logo va conmigo, en físico, a ${ruta}. La maleta ya está llena por ustedes.
 @${SITE.x}`;
 }
 
-export function sponsorReelCaption(brand: string, copy: ReelCopy = defaultReelCopy()) {
-  const ruta = reelRuta(copy);
+export function sponsorReelCaption(
+  brand: string,
+  copy: ReelCopy = defaultReelCopy(),
+  locale: ReelLocale = "es",
+) {
+  const ruta = reelRuta(copy, locale);
+  if (locale === "en") {
+    return `Thank you, ${brand}.
+
+This brand backed my cabin suitcase. Their logo travels with me, in physical form, to ${ruta}.
+
+Tag them. This video is for them.
+
+@${SITE.x}`;
+  }
   return `Gracias, ${brand}.
 
 Esta marca apoyó mi maleta de cabina. Su logo viaja conmigo, en físico, a ${ruta}.
@@ -130,17 +209,25 @@ Etiquetálos. Este video es por ellos.
 @${SITE.x}`;
 }
 
-export function pickRecorderMime() {
+export function pickRecorderMime(withAudio = false) {
   if (typeof MediaRecorder === "undefined") return "";
-  const types = [
-    "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-    "video/mp4;codecs=avc1.42E01E",
-    "video/mp4",
-    "video/webm;codecs=vp9,opus",
-    "video/webm;codecs=vp9",
-    "video/webm;codecs=vp8",
-    "video/webm",
-  ];
+  const types = withAudio
+    ? [
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp8,opus",
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+        "video/mp4",
+        "video/webm",
+      ]
+    : [
+        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
+        "video/mp4;codecs=avc1.42E01E",
+        "video/mp4",
+        "video/webm;codecs=vp9,opus",
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ];
   return types.find((type) => MediaRecorder.isTypeSupported(type)) || "";
 }
 

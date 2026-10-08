@@ -20,6 +20,7 @@ import {
   reelRuta,
   type ReelCopy,
   type ReelFormat,
+  type ReelLocale,
 } from "./reel";
 
 export type LoadedPlate = {
@@ -43,12 +44,21 @@ export type ReelAssets = {
   brands: string[];
 };
 
-const FACE_META: Record<Face, { src: "front" | "side"; mirror: boolean; label: string; nw: number; nh: number }> = {
-  front: { src: "front", mirror: false, label: "FRENTE", nw: 1168, nh: 1346 },
-  back: { src: "front", mirror: true, label: "ATRÁS", nw: 1168, nh: 1346 },
-  right: { src: "side", mirror: false, label: "LADO", nw: 768, nh: 1024 },
-  left: { src: "side", mirror: true, label: "CONTRARIO", nw: 768, nh: 1024 },
+const FACE_META: Record<Face, { src: "front" | "side"; mirror: boolean; nw: number; nh: number }> = {
+  front: { src: "front", mirror: false, nw: 1168, nh: 1346 },
+  back: { src: "front", mirror: true, nw: 1168, nh: 1346 },
+  right: { src: "side", mirror: false, nw: 768, nh: 1024 },
+  left: { src: "side", mirror: true, nw: 768, nh: 1024 },
 };
+
+const FACE_REEL_LABEL: Record<ReelLocale, Record<Face, string>> = {
+  es: { front: "FRENTE", back: "ATRÁS", right: "LADO", left: "CONTRARIO" },
+  en: { front: "FRONT", back: "BACK", right: "SIDE", left: "OPPOSITE" },
+};
+
+function faceTag(locale: ReelLocale, face: Face) {
+  return FACE_REEL_LABEL[locale][face];
+}
 
 export async function prepareReelAssets(positions: LivePosition[]): Promise<ReelAssets> {
   await document.fonts.ready.catch(() => undefined);
@@ -284,6 +294,9 @@ function drawSuitcase(
   }
   const pan = highlight && target ? highlight.pan : 0;
   ctx.save();
+  ctx.beginPath();
+  ctx.rect(x, y, w, h);
+  ctx.clip();
   ctx.translate(centerX, centerY);
   ctx.scale(zoom, zoom);
   ctx.translate(-(centerX + (focusX - centerX) * pan), -(centerY + (focusY - centerY) * pan));
@@ -504,6 +517,29 @@ function drawHook(
   ctx.restore();
 }
 
+function drawCaptionBand(
+  ctx: CanvasRenderingContext2D,
+  format: ReelFormat,
+  kicker: string,
+  title: string,
+) {
+  const { width: w, height: h } = format;
+  const compact = format.id === "square";
+  const pad = w * 0.08;
+  const bandY = compact ? h * 0.835 : h * 0.82;
+  ctx.save();
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = MUTED;
+  ctx.font = mono(700, w * 0.018);
+  ctx.fillText(kicker, pad, bandY);
+  const nameSize = fitLine(ctx, title, w - pad * 2, compact ? w * 0.05 : w * 0.056, w * 0.03);
+  ctx.fillStyle = NAVY;
+  ctx.font = sans(650, nameSize);
+  ctx.fillText(title, pad, bandY + w * 0.03, w - pad * 2);
+  ctx.restore();
+}
+
 function drawFaceTour(
   ctx: CanvasRenderingContext2D,
   t: number,
@@ -512,17 +548,19 @@ function drawFaceTour(
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const { width: w, height: h } = format;
+  const compact = format.id === "square";
   const { face, logos, start } = sceneBeat;
   const local = Math.max(0, t - start);
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.textBaseline = "alphabetic";
 
   let zoom = 1.03;
   let highlight: SuitcaseHighlight | undefined;
   let title = copy.faceTitle;
+  let kicker = faceTag(locale, face);
   if (logos.length && local >= FACE_INTRO) {
     const beatT = local - FACE_INTRO;
     const index = Math.min(logos.length - 1, Math.floor(beatT / LOGO_BEAT));
@@ -530,26 +568,23 @@ function drawFaceTour(
     const current = logos[index];
     const previous = index > 0 ? logos[index - 1] : undefined;
     title = current.sponsor;
+    kicker = `${faceTag(locale, face)}  ·  ${padSpot(current.id)}`;
     const zoomIn = ease(clamp((local - FACE_INTRO) / 0.42));
-    zoom = 1.1 + 0.56 * zoomIn;
+    zoom = 1.08 + 0.42 * zoomIn;
     highlight = {
       id: current.id,
-      pan: 0.24 + 0.68 * zoomIn,
+      pan: 0.22 + 0.62 * zoomIn,
       fromId: previous?.id,
       mix: previous ? ease(clamp(frac / 0.36)) : ease(clamp(frac / 0.42)),
     };
   } else {
-    zoom = 1.02 + 0.05 * ease(clamp(local / FACE_INTRO));
+    zoom = 1.02 + 0.04 * ease(clamp(local / FACE_INTRO));
   }
 
-  ctx.fillStyle = MUTED;
-  ctx.font = mono(700, w * 0.02);
-  ctx.fillText(FACE_META[face].label, w * 0.08, h * 0.118);
-  ctx.fillStyle = NAVY;
-  const size = fitLine(ctx, title, w * 0.84, w * 0.046, w * 0.028);
-  ctx.font = sans(650, size);
-  ctx.fillText(title, w * 0.08, h * 0.172, w * 0.84);
-  drawSuitcase(ctx, assets, face, w * 0.06, h * 0.2, w * 0.88, h * 0.68, zoom, highlight);
+  const bagY = compact ? h * 0.11 : h * 0.09;
+  const bagH = compact ? h * 0.69 : h * 0.7;
+  drawSuitcase(ctx, assets, face, w * 0.06, bagY, w * 0.88, bagH, zoom, highlight);
+  drawCaptionBand(ctx, format, kicker, title);
   ctx.restore();
 }
 
@@ -606,6 +641,7 @@ function drawCta(
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
@@ -633,7 +669,7 @@ function drawCta(
   ctx.fillStyle = NAVY;
   const body = wrapLines(
     ctx,
-    fillReel(copy.closeBody, { ruta: reelRuta(copy) }),
+    fillReel(copy.closeBody, { ruta: reelRuta(copy, locale) }),
     maxW,
     sans(500, bodySize),
   );
@@ -694,6 +730,7 @@ function drawSponsorHook(
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
@@ -722,7 +759,7 @@ function drawSponsorHook(
     ctx.textAlign = "center";
     ctx.fillText(copy.sponsorSupported, w / 2, compact ? h * 0.82 : h * 0.8);
     ctx.font = mono(700, w * 0.018);
-    ctx.fillText(`${FACE_META[spot.face].label}  ·  ${padSpot(spot.id)}`, w / 2, compact ? h * 0.88 : h * 0.86);
+    ctx.fillText(`${faceTag(locale, spot.face)}  ·  ${padSpot(spot.id)}`, w / 2, compact ? h * 0.88 : h * 0.86);
     ctx.textAlign = "left";
   });
   ctx.restore();
@@ -737,25 +774,27 @@ function drawSponsorBag(
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const { width: w, height: h } = format;
+  const compact = format.id === "square";
   ctx.save();
   ctx.globalAlpha = alpha;
   const local = clamp((t - start) / 3.2);
-  const zoom = 1.08 + 0.62 * ease(local);
-  const pan = 0.2 + 0.7 * ease(local);
-  ctx.fillStyle = MUTED;
-  ctx.font = mono(700, w * 0.02);
-  ctx.fillText(FACE_META[spot.face].label, w * 0.08, h * 0.12);
-  ctx.fillStyle = NAVY;
-  const headline = fillReel(copy.sponsorWithMe, { marca: spot.sponsor });
-  const size = fitLine(ctx, headline, w * 0.84, w * 0.046, w * 0.028);
-  ctx.font = sans(650, size);
-  ctx.fillText(headline, w * 0.08, h * 0.175, w * 0.84);
-  drawSuitcase(ctx, assets, spot.face, w * 0.06, h * 0.2, w * 0.88, h * 0.68, zoom, {
+  const zoom = 1.08 + 0.42 * ease(local);
+  const pan = 0.2 + 0.62 * ease(local);
+  const bagY = compact ? h * 0.11 : h * 0.09;
+  const bagH = compact ? h * 0.69 : h * 0.7;
+  drawSuitcase(ctx, assets, spot.face, w * 0.06, bagY, w * 0.88, bagH, zoom, {
     id: spot.id,
     pan,
   });
+  drawCaptionBand(
+    ctx,
+    format,
+    `${faceTag(locale, spot.face)}  ·  ${padSpot(spot.id)}`,
+    fillReel(copy.sponsorWithMe, { marca: spot.sponsor }),
+  );
   ctx.restore();
 }
 
@@ -765,6 +804,7 @@ function drawSponsorCta(
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const { width: w, height: h } = format;
   const pad = w * 0.08;
@@ -787,7 +827,7 @@ function drawSponsorCta(
   ctx.textAlign = "center";
   const thanks = wrapLines(
     ctx,
-    fillReel(copy.sponsorThanks, { marca: spot.sponsor, ruta: reelRuta(copy) }),
+    fillReel(copy.sponsorThanks, { marca: spot.sponsor, ruta: reelRuta(copy, locale) }),
     w - pad * 2,
     sans(500, w * 0.032),
   );
@@ -808,18 +848,19 @@ function drawGroupReel(
   assets: ReelAssets,
   format: ReelFormat,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const beats = groupReelBeats(assets);
   const hook = scene(t, 0, beats.hookEnd, 0.26);
   if (hook) drawHook(ctx, t, assets, format, hook, copy);
   for (const face of beats.faces) {
     const shown = scene(t, face.start, face.end, 0.2);
-    if (shown) drawFaceTour(ctx, t, face, assets, format, shown, copy);
+    if (shown) drawFaceTour(ctx, t, face, assets, format, shown, copy, locale);
   }
   const mosaic = scene(t, beats.mosaicStart, beats.mosaicEnd);
   if (mosaic) drawMosaic(ctx, t, beats.mosaicStart, assets, format, mosaic, copy);
   const cta = scene(t, beats.ctaStart, beats.ctaEnd);
-  if (cta) drawCta(ctx, assets, format, cta, copy);
+  if (cta) drawCta(ctx, assets, format, cta, copy, locale);
   chrome(ctx, format, copy.kicker);
   drawEndCredit(ctx, format, scene(t, beats.ctaEnd - 1.35, beats.ctaEnd, 0.4));
 }
@@ -831,13 +872,14 @@ function drawSponsorReel(
   format: ReelFormat,
   spot: LoadedPlate,
   copy: ReelCopy,
+  locale: ReelLocale,
 ) {
   const hook = scene(t, 0, 2.45, 0.26);
   const bag = scene(t, 2.3, 5.75);
   const cta = scene(t, 5.55, 8.5);
-  if (hook) drawSponsorHook(ctx, t, spot, format, hook, copy);
-  if (bag) drawSponsorBag(ctx, t, 2.3, spot, assets, format, bag, copy);
-  if (cta) drawSponsorCta(ctx, spot, format, cta, copy);
+  if (hook) drawSponsorHook(ctx, t, spot, format, hook, copy, locale);
+  if (bag) drawSponsorBag(ctx, t, 2.3, spot, assets, format, bag, copy, locale);
+  if (cta) drawSponsorCta(ctx, spot, format, cta, copy, locale);
   chrome(ctx, format, copy.kicker);
   drawEndCredit(ctx, format, scene(t, 7.35, 8.5, 0.35));
 }
@@ -849,9 +891,10 @@ export function drawReelFrame(
   format: ReelFormat,
   focus?: LoadedPlate | null,
   copyInput?: ReelCopy,
+  locale: ReelLocale = "es",
 ) {
-  const copy = parseReelCopy(copyInput);
+  const copy = parseReelCopy(copyInput, locale);
   fillBase(ctx, format.width, format.height);
-  if (focus) drawSponsorReel(ctx, t, assets, format, focus, copy);
-  else drawGroupReel(ctx, t, assets, format, copy);
+  if (focus) drawSponsorReel(ctx, t, assets, format, focus, copy, locale);
+  else drawGroupReel(ctx, t, assets, format, copy, locale);
 }
