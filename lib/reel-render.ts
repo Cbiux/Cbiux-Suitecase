@@ -637,7 +637,6 @@ function drawMosaic(
 
 function drawCta(
   ctx: CanvasRenderingContext2D,
-  assets: ReelAssets,
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
@@ -647,10 +646,10 @@ function drawCta(
   const pad = w * 0.08;
   const compact = format.id === "square";
   const kickerSize = w * 0.02;
-  const titleSize = compact ? w * 0.072 : w * 0.082;
-  const bodySize = w * 0.032;
+  const titleSize = compact ? w * 0.078 : w * 0.088;
+  const bodySize = compact ? w * 0.036 : w * 0.038;
   const maxW = w - pad * 2;
-  let y = compact ? h * 0.16 : h * 0.145;
+  let y = compact ? h * 0.2 : h * 0.22;
   ctx.save();
   ctx.globalAlpha = alpha;
   ctx.textBaseline = "top";
@@ -658,14 +657,20 @@ function drawCta(
   ctx.fillStyle = BLUE;
   ctx.font = mono(700, kickerSize);
   ctx.fillText(copy.kicker, pad, y);
-  y += kickerSize * 2.1;
+  y += kickerSize * 2.4;
   ctx.fillStyle = NAVY;
-  ctx.font = sans(650, titleSize);
+  const titleASize = fitLine(ctx, copy.closeTitleA, maxW, titleSize, titleSize * 0.55);
+  ctx.font = sans(650, titleASize);
   ctx.fillText(copy.closeTitleA, pad, y);
-  y += titleSize * 1.12;
+  y += titleASize * 1.18;
   ctx.fillStyle = BLUE;
+  const titleBSize = fitLine(ctx, copy.closeTitleB, maxW, titleSize, titleSize * 0.55);
+  ctx.font = sans(650, titleBSize);
   ctx.fillText(copy.closeTitleB, pad, y);
-  y += titleSize * 1.35;
+  y += titleBSize * 1.55;
+  ctx.fillStyle = MUTED;
+  ctx.fillRect(pad, y, w * 0.12, Math.max(2, w * 0.003));
+  y += w * 0.055;
   ctx.fillStyle = NAVY;
   const body = wrapLines(
     ctx,
@@ -675,16 +680,7 @@ function drawCta(
   );
   body.forEach((line, index) => {
     ctx.font = sans(500, bodySize);
-    ctx.fillText(line, pad, y + index * bodySize * 1.35);
-  });
-  y += body.length * bodySize * 1.35 + w * 0.06;
-  const shown = assets.brands.slice(0, compact ? 6 : 8);
-  const names = shown.join("  ·  ") + (assets.brands.length > shown.length ? "  ·  …" : "");
-  const nameLines = wrapLines(ctx, names, maxW, sans(500, w * 0.024));
-  ctx.fillStyle = MUTED;
-  ctx.font = sans(500, w * 0.024);
-  nameLines.slice(0, 4).forEach((line, index) => {
-    ctx.fillText(line, pad, y + index * w * 0.036);
+    ctx.fillText(line, pad, y + index * bodySize * 1.42);
   });
   ctx.restore();
 }
@@ -860,7 +856,7 @@ function drawGroupReel(
   const mosaic = scene(t, beats.mosaicStart, beats.mosaicEnd);
   if (mosaic) drawMosaic(ctx, t, beats.mosaicStart, assets, format, mosaic, copy);
   const cta = scene(t, beats.ctaStart, beats.ctaEnd);
-  if (cta) drawCta(ctx, assets, format, cta, copy, locale);
+  if (cta) drawCta(ctx, format, cta, copy, locale);
   chrome(ctx, format, copy.kicker);
   drawEndCredit(ctx, format, scene(t, beats.ctaEnd - 1.35, beats.ctaEnd, 0.4));
 }

@@ -53,9 +53,9 @@ export function defaultReelCopy(locale: ReelLocale = "es"): ReelCopy {
       cities: ["Lisbon", "Devcon India"],
       faceTitle: "Who is backing me.",
       mosaicTitle: "Thank you to every brand.",
-      closeTitleA: "The suitcase",
-      closeTitleB: "is full.",
-      closeBody: "For the brands that bet on this trip. They come with me to {ruta}.",
+      closeTitleA: "I don't travel alone.",
+      closeTitleB: "I travel with you.",
+      closeBody: "You believed when this was just a suitcase. Now that faith walks with me to {ruta}.",
       sponsorSupported: "backed this trip.",
       sponsorWithMe: "{marca} travels with me.",
       sponsorThanks: "Thank you for backing this trip.",
@@ -69,9 +69,9 @@ export function defaultReelCopy(locale: ReelLocale = "es"): ReelCopy {
     cities: ["Lisboa", "Devcon India"],
     faceTitle: "Quiénes me apoyan.",
     mosaicTitle: "Gracias a cada una.",
-    closeTitleA: "La maleta",
-    closeTitleB: "está llena.",
-    closeBody: "Por las marcas que apostaron por este viaje. Van conmigo a {ruta}.",
+    closeTitleA: "No viajo solo.",
+    closeTitleB: "Viajo con ustedes.",
+    closeBody: "Creyeron cuando esto era solo una maleta. Ahora su fe camina conmigo a {ruta}.",
     sponsorSupported: "apoyó este viaje.",
     sponsorWithMe: "{marca} va conmigo.",
     sponsorThanks: "Gracias por apoyar este viaje.",
@@ -84,6 +84,12 @@ export function defaultReelPack(): ReelPack {
 
 function clip(value: unknown, max: number) {
   return String(value ?? "").trim().slice(0, max);
+}
+
+function lineOrFresh(value: unknown, max: number, stale: string[], next: string) {
+  const text = clip(value, max);
+  if (!text || stale.includes(text)) return next;
+  return text;
 }
 
 export function parseReelCopy(raw: unknown, locale: ReelLocale = "es"): ReelCopy {
@@ -105,9 +111,17 @@ export function parseReelCopy(raw: unknown, locale: ReelLocale = "es"): ReelCopy
     cities: cities.length ? cities : base.cities,
     faceTitle: clip(doc.faceTitle, 80) || base.faceTitle,
     mosaicTitle: clip(doc.mosaicTitle, 80) || base.mosaicTitle,
-    closeTitleA: clip(doc.closeTitleA, 40) || base.closeTitleA,
-    closeTitleB: clip(doc.closeTitleB, 40) || base.closeTitleB,
-    closeBody: clip(doc.closeBody, 220) || base.closeBody,
+    closeTitleA: lineOrFresh(doc.closeTitleA, 40, ["La maleta", "The suitcase"], base.closeTitleA),
+    closeTitleB: lineOrFresh(doc.closeTitleB, 40, ["está llena.", "is full."], base.closeTitleB),
+    closeBody: lineOrFresh(
+      doc.closeBody,
+      220,
+      [
+        "Por las marcas que apostaron por este viaje. Van conmigo a {ruta}.",
+        "For the brands that bet on this trip. They come with me to {ruta}.",
+      ],
+      base.closeBody,
+    ),
     sponsorSupported: clip(doc.sponsorSupported, 80) || base.sponsorSupported,
     sponsorWithMe: clip(doc.sponsorWithMe, 80) || base.sponsorWithMe,
     sponsorThanks: clip(doc.sponsorThanks, 120) || base.sponsorThanks,
