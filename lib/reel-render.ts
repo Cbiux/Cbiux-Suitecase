@@ -232,6 +232,25 @@ function contain(
   return { x: x + (w - dw) / 2, y: y + (h - dh) / 2, w: dw, h: dh };
 }
 
+type SuitcaseHighlight = {
+  id: number;
+  pan: number;
+  fromId?: number;
+  mix?: number;
+};
+
+function plateFocus(
+  spot: LoadedPlate,
+  box: { x: number; y: number; w: number; h: number },
+  mirror: boolean,
+) {
+  const left = mirror ? 100 - spot.x - spot.width : spot.x;
+  return {
+    x: box.x + ((left + spot.width / 2) / 100) * box.w,
+    y: box.y + ((spot.y + spot.height / 2) / 100) * box.h,
+  };
+}
+
 function drawSuitcase(
   ctx: CanvasRenderingContext2D,
   assets: ReelAssets,
@@ -241,7 +260,7 @@ function drawSuitcase(
   w: number,
   h: number,
   zoom: number,
-  highlight?: { id: number; pan: number },
+  highlight?: SuitcaseHighlight,
 ) {
   const meta = FACE_META[face];
   const bag = meta.src === "front" ? assets.frontBag : assets.sideBag;
@@ -253,10 +272,15 @@ function drawSuitcase(
   const target = highlight
     ? assets.plates.find((spot) => spot.id === highlight.id && spot.face === face)
     : undefined;
+  const from = highlight?.fromId
+    ? assets.plates.find((spot) => spot.id === highlight.fromId && spot.face === face)
+    : undefined;
   if (target) {
-    const left = meta.mirror ? 100 - target.x - target.width : target.x;
-    focusX = box.x + ((left + target.width / 2) / 100) * box.w;
-    focusY = box.y + ((target.y + target.height / 2) / 100) * box.h;
+    const mix = from ? clamp(highlight?.mix ?? 1) : 1;
+    const toFocus = plateFocus(target, box, meta.mirror);
+    const fromFocus = from ? plateFocus(from, box, meta.mirror) : { x: centerX, y: centerY };
+    focusX = fromFocus.x + (toFocus.x - fromFocus.x) * mix;
+    focusY = fromFocus.y + (toFocus.y - fromFocus.y) * mix;
   }
   const pan = highlight && target ? highlight.pan : 0;
   ctx.save();
@@ -276,7 +300,9 @@ function drawSuitcase(
   const spots = assets.plates.filter((item) => item.face === face);
   for (const spot of spots) {
     const active = Boolean(highlight && spot.id === highlight.id);
-    drawPlate(ctx, spot, box, meta.mirror, highlight ? (active ? 1 : 0.38) : 1, active);
+    const previous = Boolean(highlight?.fromId && spot.id === highlight.fromId);
+    const dim = highlight ? (active ? 1 : previous ? 0.7 : 0.34) : 1;
+    drawPlate(ctx, spot, box, meta.mirror, dim, active);
   }
   ctx.restore();
 }
@@ -335,6 +361,63 @@ function reveal(ctx: CanvasRenderingContext2D, alpha: number, t: number, at: num
   ctx.restore();
 }
 
+const FACE_FLOW: Face[] = ["front", "back", "right", "left"];
+const HOOK_LEN = 3.2;
+const FACE_INTRO = 0.78;
+const LOGO_BEAT = 0.8;
+const MOSAIC_LEN = 2.55;
+const CTA_LEN = 2.55;
+const FACE_XFADE = 0.2;
+
+function logosOnFace(assets: ReelAssets, face: Face) {
+  const mirror = FACE_META[face].mirror;
+  return assets.plates
+    .filter((spot) => spot.face === face && spot.image)
+    .sort((a, b) => {
+      const dy = a.y + a.height / 2 - (b.y + b.height / 2);
+      if (Math.abs(dy) > 5) return dy;
+      const ax = mirror ? 100 - a.x - a.width / 2 : a.x + a.width / 2;
+      const bx = mirror ? 100 - b.x - b.width / 2 : b.x + b.width / 2;
+      return ax - bx;
+    });
+}
+
+function groupReelBeats(assets: ReelAssets) {
+  const faces = FACE_FLOW.map((face) => {
+    const logos = logosOnFace(assets, face);
+    return {
+      face,
+      logos,
+      duration: FACE_INTRO + Math.max(logos.length, 1) * LOGO_BEAT,
+    };
+  }).filter((item) => item.logos.length > 0);
+
+  let cursor = HOOK_LEN;
+  const faceScenes = faces.map((item, index) => {
+    const start = cursor;
+    const end = cursor + item.duration;
+    cursor = end - (index === faces.length - 1 ? 0 : FACE_XFADE);
+    return { ...item, start, end };
+  });
+  const mosaicStart = cursor;
+  const mosaicEnd = mosaicStart + MOSAIC_LEN;
+  const ctaStart = mosaicEnd - FACE_XFADE;
+  const ctaEnd = ctaStart + CTA_LEN;
+  return {
+    hookEnd: HOOK_LEN,
+    faces: faceScenes,
+    mosaicStart,
+    mosaicEnd,
+    ctaStart,
+    ctaEnd,
+    duration: ctaEnd,
+  };
+}
+
+export function groupReelDuration(assets: ReelAssets) {
+  return groupReelBeats(assets).duration;
+}
+
 function drawHook(
   ctx: CanvasRenderingContext2D,
   t: number,
@@ -348,75 +431,125 @@ function drawHook(
   const tall = format.id === "reels";
   const compact = format.id === "square";
   const count = Math.max(0, Math.round(ease(Math.min(t / 0.55, 1)) * assets.sold));
-  const titleSize = compact ? w * 0.11 : tall ? w * 0.13 : w * 0.11;
-  const bodySize = compact ? w * 0.052 : tall ? w * 0.058 : w * 0.05;
-  const titleY = compact ? h * 0.26 : h * 0.24;
+  const titleSize = compact ? w * 0.088 : tall ? w * 0.108 : w * 0.092;
+  const bodySize = compact ? w * 0.04 : tall ? w * 0.044 : w * 0.038;
+  const kickerSize = w * 0.02;
+  const goingSize = compact ? w * 0.03 : w * 0.032;
+  const citySize = compact ? w * 0.04 : w * 0.044;
+  const maxW = w - pad * 2;
   const cities = copy.cities.map((item) => item.trim()).filter(Boolean);
+  let y = compact ? h * 0.145 : h * 0.13;
+
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
 
+  const kickerY = y;
   reveal(ctx, alpha, t, 0.02, () => {
     ctx.fillStyle = BLUE;
-    ctx.font = mono(700, w * 0.022);
-    ctx.fillText(copy.kicker, pad, titleY - titleSize * 0.55);
+    ctx.font = mono(700, kickerSize);
+    ctx.textBaseline = "top";
+    ctx.fillText(copy.kicker, pad, kickerY);
   });
-  reveal(ctx, alpha, t, 0.18, () => {
+  y += kickerSize * 1.9;
+
+  const countText = fillReel(copy.countLine, { n: count });
+  const titleLines = wrapLines(ctx, countText, maxW, sans(650, titleSize));
+  const titleY = y;
+  reveal(ctx, alpha, t, 0.16, () => {
     ctx.fillStyle = NAVY;
     ctx.font = sans(650, titleSize);
-    ctx.fillText(fillReel(copy.countLine, { n: count }), pad, titleY);
+    ctx.textBaseline = "top";
+    titleLines.forEach((line, index) => {
+      ctx.fillText(line, pad, titleY + index * titleSize * 1.08);
+    });
   });
-  reveal(ctx, alpha, t, 0.42, () => {
+  y += titleLines.length * titleSize * 1.12 + bodySize * 0.45;
+
+  const supportLines = wrapLines(ctx, copy.supported, maxW, sans(500, bodySize));
+  const supportY = y;
+  reveal(ctx, alpha, t, 0.4, () => {
     ctx.fillStyle = NAVY;
     ctx.font = sans(500, bodySize);
-    ctx.fillText(copy.supported, pad, titleY + titleSize * 0.85);
-  });
-  if (cities.length) {
-    reveal(ctx, alpha, t, 0.62, () => {
-      ctx.fillStyle = MUTED;
-      ctx.font = sans(500, compact ? w * 0.036 : w * 0.038);
-      ctx.fillText(copy.goingTo, pad, titleY + titleSize * 0.85 + bodySize * 1.35);
+    ctx.textBaseline = "top";
+    supportLines.forEach((line, index) => {
+      ctx.fillText(line, pad, supportY + index * bodySize * 1.22);
     });
-    const cityY0 = titleY + titleSize * 0.85 + bodySize * (compact ? 2.55 : 2.85);
+  });
+  y += supportLines.length * bodySize * 1.32 + goingSize * 0.9;
+
+  if (cities.length) {
+    const goingY = y;
+    reveal(ctx, alpha, t, 0.58, () => {
+      ctx.fillStyle = MUTED;
+      ctx.font = sans(500, goingSize);
+      ctx.textBaseline = "top";
+      ctx.fillText(copy.goingTo, pad, goingY);
+    });
+    y += goingSize * 1.75;
     cities.forEach((city, index) => {
-      reveal(ctx, alpha, t, 0.86 + index * 0.16, () => {
-        const y = cityY0 + index * bodySize * 1.55;
+      const cityY = y + index * citySize * 1.58;
+      reveal(ctx, alpha, t, 0.76 + index * 0.14, () => {
+        ctx.textBaseline = "top";
         ctx.fillStyle = BLUE;
         ctx.font = mono(700, w * 0.018);
-        ctx.fillText(String(index + 1).padStart(2, "0"), pad, y);
+        ctx.fillText(String(index + 1).padStart(2, "0"), pad, cityY + citySize * 0.14);
         ctx.fillStyle = NAVY;
-        ctx.font = sans(650, compact ? w * 0.046 : w * 0.05);
-        ctx.fillText(city, pad + w * 0.09, y);
+        ctx.font = sans(650, citySize);
+        ctx.fillText(city, pad + w * 0.09, cityY);
       });
     });
   }
   ctx.restore();
 }
 
-function drawFace(
+function drawFaceTour(
   ctx: CanvasRenderingContext2D,
   t: number,
-  start: number,
-  face: Face,
+  sceneBeat: { face: Face; logos: LoadedPlate[]; start: number; end: number },
   assets: ReelAssets,
   format: ReelFormat,
   alpha: number,
   copy: ReelCopy,
 ) {
   const { width: w, height: h } = format;
+  const { face, logos, start } = sceneBeat;
+  const local = Math.max(0, t - start);
   ctx.save();
   ctx.globalAlpha = alpha;
-  const local = clamp((t - start) / 2.4);
-  const zoom = 1.02 + 0.06 * ease(local);
+  ctx.textBaseline = "alphabetic";
+
+  let zoom = 1.03;
+  let highlight: SuitcaseHighlight | undefined;
+  let title = copy.faceTitle;
+  if (logos.length && local >= FACE_INTRO) {
+    const beatT = local - FACE_INTRO;
+    const index = Math.min(logos.length - 1, Math.floor(beatT / LOGO_BEAT));
+    const frac = clamp((beatT - index * LOGO_BEAT) / LOGO_BEAT);
+    const current = logos[index];
+    const previous = index > 0 ? logos[index - 1] : undefined;
+    title = current.sponsor;
+    const zoomIn = ease(clamp((local - FACE_INTRO) / 0.42));
+    zoom = 1.1 + 0.56 * zoomIn;
+    highlight = {
+      id: current.id,
+      pan: 0.24 + 0.68 * zoomIn,
+      fromId: previous?.id,
+      mix: previous ? ease(clamp(frac / 0.36)) : ease(clamp(frac / 0.42)),
+    };
+  } else {
+    zoom = 1.02 + 0.05 * ease(clamp(local / FACE_INTRO));
+  }
+
   ctx.fillStyle = MUTED;
   ctx.font = mono(700, w * 0.02);
-  ctx.fillText(FACE_META[face].label, w * 0.08, h * 0.12);
+  ctx.fillText(FACE_META[face].label, w * 0.08, h * 0.118);
   ctx.fillStyle = NAVY;
-  ctx.font = sans(650, w * 0.048);
-  ctx.fillText(copy.faceTitle, w * 0.08, h * 0.175);
-  const bagY = h * 0.2;
-  const bagH = h * 0.68;
-  drawSuitcase(ctx, assets, face, w * 0.08, bagY, w * 0.84, bagH, zoom);
+  const size = fitLine(ctx, title, w * 0.84, w * 0.046, w * 0.028);
+  ctx.font = sans(650, size);
+  ctx.fillText(title, w * 0.08, h * 0.172, w * 0.84);
+  drawSuitcase(ctx, assets, face, w * 0.06, h * 0.2, w * 0.88, h * 0.68, zoom, highlight);
   ctx.restore();
 }
 
@@ -477,33 +610,45 @@ function drawCta(
   const { width: w, height: h } = format;
   const pad = w * 0.08;
   const compact = format.id === "square";
+  const kickerSize = w * 0.02;
+  const titleSize = compact ? w * 0.072 : w * 0.082;
+  const bodySize = w * 0.032;
+  const maxW = w - pad * 2;
+  let y = compact ? h * 0.16 : h * 0.145;
   ctx.save();
   ctx.globalAlpha = alpha;
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
   ctx.fillStyle = BLUE;
-  ctx.font = mono(700, w * 0.022);
-  ctx.fillText(copy.kicker, pad, h * (compact ? 0.22 : 0.2));
+  ctx.font = mono(700, kickerSize);
+  ctx.fillText(copy.kicker, pad, y);
+  y += kickerSize * 2.1;
   ctx.fillStyle = NAVY;
-  ctx.font = sans(650, compact ? w * 0.08 : w * 0.09);
-  ctx.fillText(copy.closeTitleA, pad, h * (compact ? 0.22 : 0.2) + w * 0.1);
+  ctx.font = sans(650, titleSize);
+  ctx.fillText(copy.closeTitleA, pad, y);
+  y += titleSize * 1.12;
   ctx.fillStyle = BLUE;
-  ctx.fillText(copy.closeTitleB, pad, h * (compact ? 0.22 : 0.2) + w * 0.2);
+  ctx.fillText(copy.closeTitleB, pad, y);
+  y += titleSize * 1.35;
   ctx.fillStyle = NAVY;
   const body = wrapLines(
     ctx,
     fillReel(copy.closeBody, { ruta: reelRuta(copy) }),
-    w - pad * 2,
-    sans(500, w * 0.034),
+    maxW,
+    sans(500, bodySize),
   );
   body.forEach((line, index) => {
-    ctx.fillText(line, pad, h * (compact ? 0.48 : 0.46) + index * w * 0.048);
+    ctx.font = sans(500, bodySize);
+    ctx.fillText(line, pad, y + index * bodySize * 1.35);
   });
+  y += body.length * bodySize * 1.35 + w * 0.06;
   const shown = assets.brands.slice(0, compact ? 6 : 8);
-  ctx.fillStyle = MUTED;
-  ctx.font = sans(500, w * 0.026);
   const names = shown.join("  ·  ") + (assets.brands.length > shown.length ? "  ·  …" : "");
-  const nameLines = wrapLines(ctx, names, w - pad * 2, sans(500, w * 0.026));
+  const nameLines = wrapLines(ctx, names, maxW, sans(500, w * 0.024));
+  ctx.fillStyle = MUTED;
+  ctx.font = sans(500, w * 0.024);
   nameLines.slice(0, 4).forEach((line, index) => {
-    ctx.fillText(line, pad, h * (compact ? 0.7 : 0.68) + index * w * 0.04);
+    ctx.fillText(line, pad, y + index * w * 0.036);
   });
   ctx.restore();
 }
@@ -664,22 +809,19 @@ function drawGroupReel(
   format: ReelFormat,
   copy: ReelCopy,
 ) {
-  const hook = scene(t, 0, 2.65, 0.28);
-  const front = scene(t, 2.55, 5.35);
-  const back = scene(t, 5.05, 7.85);
-  const right = scene(t, 7.55, 10.35);
-  const left = scene(t, 10.05, 12.85);
-  const mosaic = scene(t, 12.55, 15.3);
-  const cta = scene(t, 15.0, 17.7);
+  const beats = groupReelBeats(assets);
+  const hook = scene(t, 0, beats.hookEnd, 0.26);
   if (hook) drawHook(ctx, t, assets, format, hook, copy);
-  if (front) drawFace(ctx, t, 2.55, "front", assets, format, front, copy);
-  if (back) drawFace(ctx, t, 5.05, "back", assets, format, back, copy);
-  if (right) drawFace(ctx, t, 7.55, "right", assets, format, right, copy);
-  if (left) drawFace(ctx, t, 10.05, "left", assets, format, left, copy);
-  if (mosaic) drawMosaic(ctx, t, 12.55, assets, format, mosaic, copy);
+  for (const face of beats.faces) {
+    const shown = scene(t, face.start, face.end, 0.2);
+    if (shown) drawFaceTour(ctx, t, face, assets, format, shown, copy);
+  }
+  const mosaic = scene(t, beats.mosaicStart, beats.mosaicEnd);
+  if (mosaic) drawMosaic(ctx, t, beats.mosaicStart, assets, format, mosaic, copy);
+  const cta = scene(t, beats.ctaStart, beats.ctaEnd);
   if (cta) drawCta(ctx, assets, format, cta, copy);
   chrome(ctx, format, copy.kicker);
-  drawEndCredit(ctx, format, scene(t, 16.15, 17.7, 0.4));
+  drawEndCredit(ctx, format, scene(t, beats.ctaEnd - 1.35, beats.ctaEnd, 0.4));
 }
 
 function drawSponsorReel(

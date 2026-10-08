@@ -25,6 +25,7 @@ import {
 } from "@/lib/reel";
 import {
   drawReelFrame,
+  groupReelDuration,
   prepareReelAssets,
   sponsorPlates,
   type LoadedPlate,
@@ -118,7 +119,11 @@ export function ReelStudio({
   const format = reelFormat(formatId);
   const sponsors = assets ? sponsorPlates(assets) : [];
   const focus = mode === "sponsor" ? (sponsors.find((spot) => spot.id === focusId) ?? sponsors[0] ?? null) : null;
-  const duration = focus ? SPONSOR_REEL_DURATION : REEL_DURATION;
+  const duration = focus
+    ? SPONSOR_REEL_DURATION
+    : assets
+      ? groupReelDuration(assets)
+      : REEL_DURATION;
 
   const caption = useMemo(() => {
     if (focus) return sponsorReelCaption(focus.sponsor, copy);
@@ -263,7 +268,7 @@ export function ReelStudio({
     setBusy("record");
     setLoadError("");
     try {
-      const length = spot ? SPONSOR_REEL_DURATION : REEL_DURATION;
+      const length = spot ? SPONSOR_REEL_DURATION : groupReelDuration(assets);
       const { blob, ext } = await capture(
         (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy),
         length,
