@@ -17,7 +17,7 @@ function midiHz(note: number) {
 }
 
 function tone(
-  ctx: AudioContext,
+  ctx: BaseAudioContext,
   dest: AudioNode,
   {
     freq,
@@ -56,7 +56,7 @@ function tone(
   osc.stop(start + dur + 0.02);
 }
 
-function scheduleScore(ctx: AudioContext, dest: AudioNode, t0: number, seconds: number) {
+function scheduleScore(ctx: BaseAudioContext, dest: AudioNode, t0: number, seconds: number) {
   const end = t0 + seconds + 1.2;
   let t = t0;
   let bar = 0;
@@ -171,4 +171,24 @@ export async function startReelMusic(options: {
       await ctx.close().catch(() => undefined);
     },
   };
+}
+
+export async function renderReelMusic(seconds: number, volume = 0.2) {
+  const sampleRate = 44100;
+  const ctx = new OfflineAudioContext(2, Math.max(1, Math.ceil(sampleRate * seconds)), sampleRate);
+  const master = ctx.createGain();
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 1750;
+  filter.Q.value = 0.65;
+  const t0 = 0.04;
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(volume, t0 + 0.55);
+  const fadeAt = t0 + Math.max(1, seconds - 0.85);
+  master.gain.setValueAtTime(volume, fadeAt);
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + seconds);
+  filter.connect(master);
+  master.connect(ctx.destination);
+  scheduleScore(ctx, filter, t0, seconds);
+  return ctx.startRendering();
 }

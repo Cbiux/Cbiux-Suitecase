@@ -18,8 +18,6 @@ import {
   defaultReelCopy,
   parseReelCopy,
   parseReelPack,
-  pickRecorderMime,
-  recorderExtension,
   reelCaption,
   reelFormat,
   sponsorReelCaption,
@@ -28,7 +26,8 @@ import {
   type ReelLocale,
   type ReelPack,
 } from "@/lib/reel";
-import { startReelMusic } from "@/lib/reel-music";
+import { renderReelMusic, startReelMusic } from "@/lib/reel-music";
+import { encodeReelMp4 } from "@/lib/reel-mp4";
 import {
   drawReelFrame,
   groupReelDuration,
@@ -48,7 +47,7 @@ const TIPS = [
   "Generá una versión en español y otra en inglés con el mismo botón, cambiando el idioma.",
   "La música queda mezclada en el archivo. Apagala si lo vas a sonorizar en CapCut.",
   "Generar todos tarda unos 8 segundos por partner. No cierres la pestaña.",
-  "Si el archivo sale .webm, abrilo en CapCut y exportá MP4.",
+  "El archivo baja como MP4, listo para Instagram, TikTok o CapCut.",
 ];
 
 const FIELD =
@@ -305,65 +304,33 @@ export function ReelStudio({
     };
   }, [clips]);
 
-  async function capture(draw: (t: number) => void, length: number, hear: boolean) {
+  async function capture(draw: (t: number) => void, length: number) {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) throw new Error("CANVAS");
     canvas.width = format.width;
     canvas.height = format.height;
     draw(0);
-    const videoStream = canvas.captureStream(REEL_FPS);
-    let stopMusic = async () => {};
-    let mixed = false;
-    let stream: MediaStream = videoStream;
+    let audio: AudioBuffer | null = null;
     if (musicOn) {
       try {
-        const score = await startReelMusic({ seconds: length + 0.45, hear, volume: 0.2 });
-        stream = new MediaStream([...videoStream.getVideoTracks(), score.track]);
-        stopMusic = score.stop;
-        mixed = true;
+        audio = await renderReelMusic(length + 0.45, 0.2);
       } catch {
-        stream = videoStream;
+        audio = null;
       }
     }
-    const mime = pickRecorderMime(mixed);
-    if (!mime || typeof MediaRecorder === "undefined") throw new Error("RECORDER");
-    const chunks: BlobPart[] = [];
-    const recorder = new MediaRecorder(stream, {
-      mimeType: mime,
-      videoBitsPerSecond: 8_000_000,
-      ...(mixed ? { audioBitsPerSecond: 160_000 } : {}),
-    });
-    recorder.ondataavailable = (event) => {
-      if (event.data.size) chunks.push(event.data);
-    };
-    const done = new Promise<Blob>((resolve, reject) => {
-      recorder.onerror = () => reject(new Error("RECORD"));
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mime }));
-    });
-    recorder.start(200);
-    const started = performance.now();
-    await new Promise<void>((resolve) => {
-      const step = () => {
-        const t = Math.min(length, (performance.now() - started) / 1000);
-        draw(t);
-        if (barRef.current) barRef.current.style.width = `${Math.round((t / length) * 100)}%`;
-        if (t >= length) {
-          resolve();
-          return;
-        }
-        window.setTimeout(step, 1000 / REEL_FPS);
-      };
-      step();
+    const blob = await encodeReelMp4({
+      canvas,
+      draw,
+      seconds: length,
+      fps: REEL_FPS,
+      audio,
+      onProgress: (ratio) => {
+        if (barRef.current) barRef.current.style.width = `${Math.round(ratio * 100)}%`;
+      },
     });
     if (barRef.current) barRef.current.style.width = "100%";
-    await new Promise((resolve) => window.setTimeout(resolve, 120));
-    recorder.stop();
-    const blob = await done;
-    await stopMusic();
-    stream.getTracks().forEach((track) => track.stop());
-    videoStream.getTracks().forEach((track) => track.stop());
-    return { blob, ext: recorderExtension(mime) };
+    return { blob, ext: "mp4" as const };
   }
 
   async function recordOne(spot: LoadedPlate | null) {
@@ -375,7 +342,6 @@ export function ReelStudio({
       const { blob, ext } = await capture(
         (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy, locale),
         length,
-        true,
       );
       const url = URL.createObjectURL(blob);
       const clip: Clip = spot
@@ -405,8 +371,8 @@ export function ReelStudio({
       saveFile(url, clip.name);
     } catch (error) {
       setLoadError(
-        error instanceof Error && error.message === "RECORDER"
-          ? "Este navegador no puede grabar video. Probá Chrome o Safari."
+        error instanceof Error && (error.message === "RECORDER" || error.message === "ENCODER")
+          ? "Este navegador no puede exportar MP4. Probá Chrome o Safari."
           : "No se pudo terminar el video. Reintentá.",
       );
     }
@@ -426,7 +392,6 @@ export function ReelStudio({
         const { blob, ext } = await capture(
           (t) => drawReelFrame(canvasRef.current!.getContext("2d")!, t, assets, format, spot, copy, locale),
           SPONSOR_REEL_DURATION,
-          false,
         );
         const url = URL.createObjectURL(blob);
         const clip: Clip = {

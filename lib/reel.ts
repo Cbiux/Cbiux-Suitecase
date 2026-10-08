@@ -223,28 +223,3 @@ Etiquetálos. Este video es por ellos.
 @${SITE.x}`;
 }
 
-export function pickRecorderMime(withAudio = false) {
-  if (typeof MediaRecorder === "undefined") return "";
-  const types = withAudio
-    ? [
-        "video/webm;codecs=vp9,opus",
-        "video/webm;codecs=vp8,opus",
-        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-        "video/mp4",
-        "video/webm",
-      ]
-    : [
-        "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
-        "video/mp4;codecs=avc1.42E01E",
-        "video/mp4",
-        "video/webm;codecs=vp9,opus",
-        "video/webm;codecs=vp9",
-        "video/webm;codecs=vp8",
-        "video/webm",
-      ];
-  return types.find((type) => MediaRecorder.isTypeSupported(type)) || "";
-}
-
-export function recorderExtension(mime: string) {
-  return mime.includes("mp4") ? "mp4" : "webm";
-}
